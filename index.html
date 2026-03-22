@@ -170,12 +170,26 @@
         var HISTORY_KEY = 'bd_vat_tax_history_v2';
 
         var categories = [
-          { id: 'office-supplies', nameEn: 'Office Supplies', nameBn: 'অফিস সরঞ্জাম', vatRate: 15, taxRate: 3, approved: true },
-          { id: 'consultancy', nameEn: 'Consultancy Service', nameBn: 'পরামর্শ সেবা', vatRate: 15, taxRate: 10, approved: true },
-          { id: 'transport', nameEn: 'Transport & Logistics', nameBn: 'পরিবহন ও লজিস্টিক', vatRate: 5, taxRate: 3, approved: true },
-          { id: 'training', nameEn: 'Training & Workshop', nameBn: 'প্রশিক্ষণ ও কর্মশালা', vatRate: 10, taxRate: 5, approved: false },
-          { id: 'it-services', nameEn: 'IT Services', nameBn: 'আইটি সেবা', vatRate: 15, taxRate: 10, approved: true },
-          { id: 'maintenance', nameEn: 'Maintenance Work', nameBn: 'রক্ষণাবেক্ষণ কাজ', vatRate: 7.5, taxRate: 5, approved: false }
+          { id: 'goods-local', nameEn: 'Local Goods Purchase', nameBn: 'স্থানীয় পণ্য ক্রয়', vatRate: 15, taxRate: 3, approved: true },
+          { id: 'trading-supplier', nameEn: 'Supplier/Trading Bill', nameBn: 'সাপ্লায়ার/ট্রেডিং বিল', vatRate: 15, taxRate: 3, approved: true },
+          { id: 'civil-contractor', nameEn: 'Civil/Work Contractor', nameBn: 'সিভিল/ওয়ার্ক কন্ট্রাক্টর', vatRate: 15, taxRate: 7.5, approved: true },
+          { id: 'repair-maintenance', nameEn: 'Repair & Maintenance Service', nameBn: 'মেরামত ও রক্ষণাবেক্ষণ সেবা', vatRate: 15, taxRate: 7.5, approved: true },
+          { id: 'consultancy-professional', nameEn: 'Consultancy/Professional Service', nameBn: 'কনসালটেন্সি/প্রফেশনাল সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'legal-service', nameEn: 'Legal & Audit Service', nameBn: 'আইনি ও অডিট সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'rent-office', nameEn: 'Office/Building Rent', nameBn: 'অফিস/ভবন ভাড়া', vatRate: 15, taxRate: 5, approved: true },
+          { id: 'transport-logistics', nameEn: 'Transport & Logistics', nameBn: 'পরিবহন ও লজিস্টিক', vatRate: 5, taxRate: 3, approved: true },
+          { id: 'security-service', nameEn: 'Security Service', nameBn: 'নিরাপত্তা সেবা', vatRate: 15, taxRate: 7.5, approved: true },
+          { id: 'cleaning-service', nameEn: 'Cleaning/Janitorial Service', nameBn: 'ক্লিনিং/জ্যানিটোরিয়াল সেবা', vatRate: 15, taxRate: 7.5, approved: true },
+          { id: 'manpower-service', nameEn: 'Manpower Supply Service', nameBn: 'ম্যানপাওয়ার সাপ্লাই সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'commission-brokerage', nameEn: 'Commission/Brokerage', nameBn: 'কমিশন/ব্রোকারেজ', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'it-enabled-service', nameEn: 'IT/Software Service', nameBn: 'আইটি/সফটওয়্যার সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'training-workshop', nameEn: 'Training/Workshop Service', nameBn: 'প্রশিক্ষণ/ওয়ার্কশপ সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'event-management', nameEn: 'Event Management Service', nameBn: 'ইভেন্ট ম্যানেজমেন্ট সেবা', vatRate: 15, taxRate: 10, approved: false },
+          { id: 'printing-publication', nameEn: 'Printing & Publication', nameBn: 'প্রিন্টিং ও প্রকাশনা', vatRate: 15, taxRate: 5, approved: true },
+          { id: 'advertising-media', nameEn: 'Advertising/Media Bill', nameBn: 'বিজ্ঞাপন/মিডিয়া বিল', vatRate: 15, taxRate: 5, approved: true },
+          { id: 'clearing-forwarding', nameEn: 'Clearing & Forwarding', nameBn: 'ক্লিয়ারিং ও ফরওয়ার্ডিং', vatRate: 15, taxRate: 5, approved: true },
+          { id: 'hotel-venue', nameEn: 'Hotel/Venue Service', nameBn: 'হোটেল/ভেন্যু সেবা', vatRate: 15, taxRate: 5, approved: false },
+          { id: 'misc-service', nameEn: 'Other Service Bill', nameBn: 'অন্যান্য সেবা বিল', vatRate: 15, taxRate: 5, approved: false }
         ];
 
         var labels = {
@@ -234,6 +248,7 @@
             resultTotal: 'Gross / Total Amount',
             resultActual: 'Actual Pay',
             categoryTableTitle: 'Category List',
+            categoryRateNote: 'Heads and rates are configurable. Please verify against latest NBR/SRO before final deduction.',
             noResult: 'No result yet. Submit the form to see output.',
             historyTitle: 'Recent Calculation History',
             historyEmpty: 'No history found.',
@@ -316,6 +331,7 @@
             resultTotal: 'মোট এমাউন্ট',
             resultActual: 'Actual Pay',
             categoryTableTitle: 'ক্যাটাগরি তালিকা',
+            categoryRateNote: 'হেড ও রেট পরিবর্তনযোগ্য। চূড়ান্ত কাটার আগে সর্বশেষ NBR/SRO অনুযায়ী যাচাই করুন।',
             noResult: 'এখনও কোনো ফলাফল নেই।',
             historyTitle: 'সাম্প্রতিক হিসাব',
             historyEmpty: 'কোনো হিসাব পাওয়া যায়নি।',
@@ -1178,7 +1194,7 @@
             + '    <h3 style="margin:0 0 .65rem">' + t('snapshotTitle') + '</h3>'
             + '    <div id="history-snapshot-area"></div>'
             + '  </section>'
-            + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div></section>'
+            + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div><p class="note">' + t('categoryRateNote') + '</p></section>'
             + '  <footer>' + t('footerText') + '</footer>'
             + '</main>';
         }
