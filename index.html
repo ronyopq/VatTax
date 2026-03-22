@@ -51,6 +51,7 @@
         border: 1px solid var(--line);
         border-radius: 14px;
         padding: 1rem;
+        box-shadow: 0 8px 24px rgba(20, 55, 41, 0.06);
       }
       .hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
       .hero h1 { margin: 0; font-size: clamp(1.25rem, 2.8vw, 2rem); }
@@ -215,6 +216,59 @@
       .history-item h4 { margin: 0; color: #17543e; }
       .history-item p { margin: 0.2rem 0 0; color: #4e6459; font-size: 0.85rem; }
       .history-item small { color: #6a7b71; display: block; margin-top: 0.25rem; }
+      .history-scroll {
+        max-height: 56vh;
+        overflow: auto;
+        padding-right: 4px;
+      }
+      .history-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.4rem;
+        align-items: center;
+      }
+      .history-item .amount {
+        font-weight: 800;
+        color: #184f3c;
+      }
+      .history-pager {
+        margin-top: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .history-pager .pager-btn {
+        border: 1px solid #cfdccc;
+        background: #f5faf2;
+        color: #2d4f41;
+        border-radius: 8px;
+        padding: 0.35rem 0.62rem;
+        font-weight: 700;
+      }
+      .history-pager .pager-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .history-page-text {
+        color: #496258;
+        font-size: 0.82rem;
+      }
+      .result-empty-card {
+        border: 1px dashed #cad7c7;
+        border-radius: 10px;
+        background: #f8fcf6;
+        padding: 0.75rem;
+      }
+      .result-empty-card h4 {
+        margin: 0;
+        color: #1f513f;
+      }
+      .result-empty-card p {
+        margin: 0.3rem 0 0;
+        color: #4d655b;
+        font-size: 0.86rem;
+      }
       .kpi-grid { display: grid; gap: 0.6rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .kpi { border: 1px solid #d7e3d4; background: #f7fcf5; border-radius: 9px; padding: 0.65rem; }
       .kpi h4 { margin: 0; color: #1c5642; font-size: 0.85rem; }
@@ -517,6 +571,9 @@
             noResult: 'No result yet. Submit the form to see output.',
             historyTitle: 'Recent Calculation History',
             historyEmpty: 'No history found.',
+            historyPage: 'Page',
+            pagerPrev: 'Prev',
+            pagerNext: 'Next',
             compareTitle: 'Scenario Compare (Pro)',
             scenarioA: 'Scenario A',
             scenarioB: 'Scenario B',
@@ -610,6 +667,9 @@
             noResult: 'এখনও কোনো ফলাফল নেই।',
             historyTitle: 'সাম্প্রতিক হিসাব',
             historyEmpty: 'কোনো হিসাব পাওয়া যায়নি।',
+            historyPage: 'পৃষ্ঠা',
+            pagerPrev: 'আগের',
+            pagerNext: 'পরের',
             compareTitle: 'সিনারিও কম্পেয়ার (প্রো)',
             scenarioA: 'সিনারিও A',
             scenarioB: 'সিনারিও B',
@@ -649,7 +709,9 @@
           officialMode: false,
           roleTheme: 'finance',
           verification: null,
-          liveNowText: ''
+          liveNowText: '',
+          historyPage: 1,
+          historyPageSize: 6
         };
 
         function storageGet() {
@@ -819,18 +881,30 @@
 
         function getHistoryHtml() {
           if (!state.history.length) return '<p class="empty">' + t('historyEmpty') + '</p>';
+          var start = (state.historyPage - 1) * state.historyPageSize;
+          var end = start + state.historyPageSize;
+          var pageRows = state.history.slice(start, end);
           var html = '';
-          for (var i = 0; i < state.history.length; i++) {
-            var item = state.history[i];
+          for (var i = 0; i < pageRows.length; i++) {
+            var item = pageRows[i];
             html += '<article class="history-item">'
-              + '<h4>' + modeLabel(item.mode) + '</h4>'
-              + '<p>' + t('formBill') + ': ' + money(item.input.bill) + '</p>'
+              + '<div class="history-row"><h4>' + modeLabel(item.mode) + '</h4><span class="amount">' + money(item.output.total) + '</span></div>'
               + '<p>' + t('formVat') + ': ' + item.input.vatRate + '% | ' + t('formTax') + ': ' + item.input.taxRate + '%</p>'
-              + '<p>' + t('resultTotal') + ': ' + money(item.output.total) + '</p>'
               + '<small>' + new Date(item.createdAt).toLocaleString() + '</small>'
               + '</article>';
           }
           return html;
+        }
+
+        function getHistoryPagerHtml() {
+          if (!state.history.length) return '';
+          var totalPages = Math.max(1, Math.ceil(state.history.length / state.historyPageSize));
+          if (state.historyPage > totalPages) state.historyPage = totalPages;
+          return '<div class="history-pager">'
+            + '<button class="pager-btn" id="history-prev" ' + (state.historyPage <= 1 ? 'disabled' : '') + '>' + t('pagerPrev') + '</button>'
+            + '<span class="history-page-text">' + t('historyPage') + ' ' + state.historyPage + ' / ' + totalPages + '</span>'
+            + '<button class="pager-btn" id="history-next" ' + (state.historyPage >= totalPages ? 'disabled' : '') + '>' + t('pagerNext') + '</button>'
+            + '</div>';
         }
 
         function getKpiHtml() {
@@ -861,7 +935,9 @@
         }
 
         function getResultHtml() {
-          if (!state.result) return '<p class="empty">' + t('noResult') + '</p>';
+          if (!state.result) {
+            return '<div class="result-empty-card"><h4>' + t('resultTitle') + '</h4><p>' + t('noResult') + '</p></div>';
+          }
           var o = state.result.output;
           return '<table><tbody>'
             + '<tr><th>' + t('resultMode') + '</th><td>' + modeLabel(state.result.mode) + '</td></tr>'
@@ -922,6 +998,7 @@
           var result = document.getElementById('result-table');
           var resultPrint = document.getElementById('result-table-print');
           var hist = document.getElementById('history-area');
+          var histPager = document.getElementById('history-pager-area');
           var list = document.getElementById('category-list');
           var kpi = document.getElementById('kpi-area');
           var compare = document.getElementById('compare-out');
@@ -936,6 +1013,7 @@
           if (result) result.innerHTML = getResultHtml();
           if (resultPrint) resultPrint.innerHTML = getResultHtml();
           if (hist) hist.innerHTML = getHistoryHtml();
+          if (histPager) histPager.innerHTML = getHistoryPagerHtml();
           if (list) list.innerHTML = getCategoryTableHtml();
           if (kpi) kpi.innerHTML = getKpiHtml();
           if (compare) compare.innerHTML = getCompareHtml();
@@ -949,6 +1027,30 @@
           if (liveTime) {
             state.liveNowText = new Date().toLocaleTimeString();
             liveTime.textContent = state.liveNowText;
+          }
+        }
+
+        function bindHistoryPager() {
+          var prev = document.getElementById('history-prev');
+          var next = document.getElementById('history-next');
+          if (prev) {
+            prev.addEventListener('click', function () {
+              if (state.historyPage > 1) {
+                state.historyPage -= 1;
+                refreshPanels();
+                bindHistoryPager();
+              }
+            });
+          }
+          if (next) {
+            next.addEventListener('click', function () {
+              var totalPages = Math.max(1, Math.ceil(state.history.length / state.historyPageSize));
+              if (state.historyPage < totalPages) {
+                state.historyPage += 1;
+                refreshPanels();
+                bindHistoryPager();
+              }
+            });
           }
         }
 
@@ -1040,6 +1142,7 @@
             };
 
             state.history = [state.result].concat(state.history).slice(0, 12);
+            state.historyPage = 1;
             saveHistory();
             setError(formId, '');
             updateShareLinkText('');
@@ -1177,6 +1280,7 @@
           if (clearBtn) {
             clearBtn.addEventListener('click', function () {
               state.history = [];
+              state.historyPage = 1;
               saveHistory();
               refreshPanels();
               updateProNote(t('historyCleared'));
@@ -1187,6 +1291,7 @@
           if (sideClearBtn) {
             sideClearBtn.addEventListener('click', function () {
               state.history = [];
+              state.historyPage = 1;
               saveHistory();
               refreshPanels();
               updateProNote(t('historyCleared'));
@@ -1461,7 +1566,7 @@
             + '  </section>'
 
             + '  <section class="out-grid">'
-            + '    <section class="history easy-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" style="margin-top:.25rem"></div></section>'
+            + '    <section class="history easy-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" class="history-scroll" style="margin-top:.25rem"></div><div id="history-pager-area"></div></section>'
             + '    <section class="result result-hero"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
             + '  </section>'
 
@@ -1554,6 +1659,7 @@
           prefillFromQuery();
           applyRoleTheme();
           refreshPanels();
+          bindHistoryPager();
           startLiveClock();
         }
 
