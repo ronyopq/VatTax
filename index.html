@@ -2,18 +2,583 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Bangladesh VAT & TAX Calculator with Gross Up, Vendor, and Category based calculations." />
+    <meta name="description" content="Bangladesh VAT & TAX Calculator" />
     <title>Bangladesh VAT & TAX Calculator</title>
+    <style>
+      :root {
+        --bg: #f6f8ef;
+        --ink: #1f2a1e;
+        --muted: #5f6f62;
+        --card: #ffffff;
+        --line: #d6dfd2;
+        --brand: #0b6a4e;
+        --danger: #b72020;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Hind Siliguri", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 8% 12%, #e9f3d8 0%, transparent 42%),
+          radial-gradient(circle at 92% 18%, #ffe9bf 0%, transparent 36%),
+          linear-gradient(165deg, #f8f9f2 0%, #eef2e2 100%);
+      }
+      #app { width: min(1160px, 100% - 1rem); margin: 1rem auto 2rem; }
+      .wrap { display: grid; gap: 1rem; }
+      .hero, .box, .result, .history, .category-list {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 1rem;
+      }
+      .hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+      .hero h1 { margin: 0; font-size: clamp(1.25rem, 2.8vw, 2rem); }
+      .hero p { margin: 0.45rem 0 0; color: var(--muted); }
+      button { border: 0; border-radius: 9px; padding: 0.62rem 0.9rem; font-weight: 700; cursor: pointer; }
+      .primary { color: #fff; background: var(--brand); }
+      .ghost { background: #eff5ee; border: 1px solid #d6e2d3; color: #24372d; }
+      .cards { display: grid; gap: 0.7rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .card { text-align: left; border: 1px solid #ccdbc9; border-radius: 10px; padding: 0.85rem; background: #f8fff4; }
+      .card strong { display: block; color: #164e3a; }
+      .card span { color: #5a6f62; font-size: 0.88rem; }
+      .grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      form { display: grid; gap: 0.55rem; margin-top: 0.7rem; }
+      label { display: grid; gap: 0.3rem; font-size: 0.9rem; font-weight: 600; color: #2e473d; }
+      input, select { border: 1px solid #c8d6c6; border-radius: 9px; padding: 0.55rem 0.7rem; font: inherit; background: #fff; }
+      input[readonly] { background: #ecf6ef; }
+      .actions { display: flex; gap: 0.5rem; }
+      .actions button { flex: 1; }
+      .error { margin: 0; color: var(--danger); min-height: 1rem; font-size: 0.82rem; }
+      .out-grid { display: grid; gap: 0.8rem; grid-template-columns: 1.2fr 0.8fr; }
+      .head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #d3dfd0; padding: 0.55rem 0.7rem; text-align: left; }
+      th { width: 45%; background: #e4f2e6; color: #1a553f; }
+      .note { margin: 0.55rem 0 0; color: #0f6a4c; font-size: 0.85rem; }
+      .empty { margin: 0; background: #f4f8f2; color: #5d6f61; border-radius: 8px; padding: 0.7rem; }
+      .history-item { border: 1px solid #d7e3d4; border-radius: 9px; padding: 0.6rem; margin-bottom: 0.55rem; background: #fdfefb; }
+      .history-item h4 { margin: 0; color: #17543e; }
+      .history-item p { margin: 0.2rem 0 0; color: #4e6459; font-size: 0.85rem; }
+      footer { text-align: center; color: #50655a; font-size: 0.9rem; padding: 0.75rem; }
+      .fatal {
+        border: 1px solid #f0c3c3;
+        background: #fff;
+        border-radius: 12px;
+        padding: 0.95rem;
+        color: #5e3c3c;
+      }
+      .fatal h2 { margin: 0; color: #8d1f1f; }
+      @media (max-width: 960px) {
+        .grid { grid-template-columns: 1fr 1fr; }
+        .grid .box:last-child { grid-column: 1 / -1; }
+        .out-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 720px) {
+        .hero { flex-direction: column; }
+        .cards, .grid { grid-template-columns: 1fr; }
+        .actions { flex-direction: column; }
+        .head { flex-direction: column; align-items: stretch; }
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>
     <noscript>
-      <div class="noscript-box">
-        JavaScript is required to run this VAT & TAX calculator. Please enable JavaScript and refresh.
-      </div>
+      <div class="fatal" style="margin:1rem">JavaScript is required to run this VAT & TAX calculator.</div>
     </noscript>
-    <script type="module" src="/src/main.js"></script>
+
+    <script>
+      (function () {
+        var BILL_MAX = 10000000;
+        var HISTORY_KEY = 'bd_vat_tax_history_v2';
+
+        var categories = [
+          { id: 'office-supplies', nameEn: 'Office Supplies', nameBn: 'অফিস সরঞ্জাম', vatRate: 15, taxRate: 3 },
+          { id: 'consultancy', nameEn: 'Consultancy Service', nameBn: 'পরামর্শ সেবা', vatRate: 15, taxRate: 10 },
+          { id: 'transport', nameEn: 'Transport & Logistics', nameBn: 'পরিবহন ও লজিস্টিক', vatRate: 5, taxRate: 3 },
+          { id: 'training', nameEn: 'Training & Workshop', nameBn: 'প্রশিক্ষণ ও কর্মশালা', vatRate: 10, taxRate: 5 },
+          { id: 'it-services', nameEn: 'IT Services', nameBn: 'আইটি সেবা', vatRate: 15, taxRate: 10 },
+          { id: 'maintenance', nameEn: 'Maintenance Work', nameBn: 'রক্ষণাবেক্ষণ কাজ', vatRate: 7.5, taxRate: 5 }
+        ];
+
+        var labels = {
+          en: {
+            appTitle: 'Bangladesh VAT & TAX Calculator',
+            appSubtitle: 'Fast and accurate VAT/TAX calculations for public users, finance, procurement, and vendors.',
+            homeTitle: 'Choose Calculation Type',
+            homeGross: 'Gross Up VAT & TAX',
+            homeVendor: 'Procurement / Vendor',
+            homeCategory: 'Category Based',
+            homeGrossInfo: 'Base amount + VAT + TAX',
+            homeVendorInfo: 'Bill includes VAT/TAX, find actual pay',
+            homeCategoryInfo: 'Auto-fill VAT/TAX from category',
+            grossTitle: 'Gross Up VAT & TAX Calculator',
+            vendorTitle: 'Procurement / Vendor Calculator',
+            categoryTitle: 'Category-Based Calculator',
+            formBill: 'Bill Amount',
+            formVat: 'VAT Rate (%)',
+            formTax: 'TAX Rate (%)',
+            formCategory: 'Category',
+            calculate: 'Calculate',
+            clear: 'Clear',
+            copyLink: 'Share Result Link',
+            resultTitle: 'Calculation Result',
+            resultMode: 'Mode',
+            resultBase: 'Base Value',
+            resultVat: 'VAT Amount',
+            resultTax: 'TAX Amount',
+            resultTotal: 'Gross / Total Amount',
+            resultActual: 'Actual Pay',
+            categoryTableTitle: 'Category List',
+            noResult: 'No result yet. Submit the form to see output.',
+            historyTitle: 'Recent Calculation History',
+            historyEmpty: 'No history found.',
+            footerText: 'Built for Bangladesh VAT/TAX quick estimation.',
+            validationRequired: 'All fields are required.',
+            validationNumeric: 'Only numeric input is allowed.',
+            validationNegative: 'Negative values are not allowed.',
+            validationRate: 'VAT/TAX must be between 0 and 100.',
+            validationBillMax: 'Bill amount cannot exceed 1 crore (10,000,000).',
+            successLink: 'Result link copied.',
+            errorLink: 'Could not copy link in this browser.',
+            selectCategory: 'Select category',
+            languageToggle: 'বাংলা'
+          },
+          bn: {
+            appTitle: 'বাংলাদেশ VAT ও TAX ক্যালকুলেটর',
+            appSubtitle: 'সাধারণ ব্যবহারকারী, ফিনান্স, প্রোকিউরমেন্ট এবং ভেন্ডরের জন্য দ্রুত ও সঠিক হিসাব।',
+            homeTitle: 'ক্যালকুলেটর টাইপ নির্বাচন করুন',
+            homeGross: 'গ্রস আপ VAT ও TAX',
+            homeVendor: 'প্রোকিউরমেন্ট / ভেন্ডর',
+            homeCategory: 'ক্যাটাগরি ভিত্তিক',
+            homeGrossInfo: 'বেইজ এমাউন্ট + VAT + TAX',
+            homeVendorInfo: 'বিলে VAT/TAX আছে, Actual Pay বের করুন',
+            homeCategoryInfo: 'ক্যাটাগরি থেকে VAT/TAX অটো ফিল',
+            grossTitle: 'গ্রস আপ VAT ও TAX ক্যালকুলেটর',
+            vendorTitle: 'প্রোকিউরমেন্ট / ভেন্ডর ক্যালকুলেটর',
+            categoryTitle: 'ক্যাটাগরি ভিত্তিক ক্যালকুলেটর',
+            formBill: 'বিল এমাউন্ট',
+            formVat: 'VAT হার (%)',
+            formTax: 'TAX হার (%)',
+            formCategory: 'ক্যাটাগরি',
+            calculate: 'হিসাব করুন',
+            clear: 'রিসেট',
+            copyLink: 'ফলাফলের লিংক কপি',
+            resultTitle: 'হিসাবের ফলাফল',
+            resultMode: 'মোড',
+            resultBase: 'বেইজ ভ্যালু',
+            resultVat: 'VAT এমাউন্ট',
+            resultTax: 'TAX এমাউন্ট',
+            resultTotal: 'মোট এমাউন্ট',
+            resultActual: 'Actual Pay',
+            categoryTableTitle: 'ক্যাটাগরি তালিকা',
+            noResult: 'এখনও কোনো ফলাফল নেই।',
+            historyTitle: 'সাম্প্রতিক হিসাব',
+            historyEmpty: 'কোনো হিসাব পাওয়া যায়নি।',
+            footerText: 'বাংলাদেশ VAT/TAX দ্রুত হিসাবের জন্য তৈরি।',
+            validationRequired: 'সব ইনপুট পূরণ করতে হবে।',
+            validationNumeric: 'শুধু সংখ্যা ইনপুট দিন।',
+            validationNegative: 'Negative ইনপুট গ্রহণযোগ্য নয়।',
+            validationRate: 'VAT/TAX হার 0 থেকে 100 এর মধ্যে হতে হবে।',
+            validationBillMax: 'বিল এমাউন্ট ১ কোটির বেশি হতে পারবে না।',
+            successLink: 'ফলাফলের লিংক কপি হয়েছে।',
+            errorLink: 'এই ব্রাউজারে লিংক কপি করা যায়নি।',
+            selectCategory: 'ক্যাটাগরি নির্বাচন করুন',
+            languageToggle: 'English'
+          }
+        };
+
+        var state = {
+          lang: 'bn',
+          result: null,
+          history: []
+        };
+
+        function storageGet() {
+          try { return window.localStorage; } catch (e) { return null; }
+        }
+
+        function loadHistory() {
+          var s = storageGet();
+          if (!s) return [];
+          try {
+            var raw = s.getItem(HISTORY_KEY);
+            if (!raw) return [];
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (e) {
+            return [];
+          }
+        }
+
+        function saveHistory() {
+          var s = storageGet();
+          if (!s) return;
+          try { s.setItem(HISTORY_KEY, JSON.stringify(state.history)); } catch (e) {}
+        }
+
+        function t(key) { return labels[state.lang][key]; }
+
+        function money(value) {
+          var locale = state.lang === 'bn' ? 'bn-BD' : 'en-BD';
+          try {
+            return new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+          } catch (e) {
+            return String(Math.round(value * 100) / 100);
+          }
+        }
+
+        function parseNum(v) {
+          if (v === null || v === undefined || v === '') return NaN;
+          return Number(v);
+        }
+
+        function validate(payload) {
+          if (isNaN(payload.bill) || isNaN(payload.vatRate) || isNaN(payload.taxRate)) return t('validationNumeric');
+          if (payload.bill < 0 || payload.vatRate < 0 || payload.taxRate < 0) return t('validationNegative');
+          if (payload.vatRate > 100 || payload.taxRate > 100) return t('validationRate');
+          if (payload.bill > BILL_MAX) return t('validationBillMax');
+          return null;
+        }
+
+        function calcGross(bill, vatRate, taxRate) {
+          var base = bill;
+          var vat = base * (vatRate / 100);
+          var tax = base * (taxRate / 100);
+          var total = base + vat + tax;
+          return { base: base, vat: vat, tax: tax, total: total, actualPay: base };
+        }
+
+        function calcVendor(bill, vatRate, taxRate) {
+          var divisor = 1 + ((vatRate + taxRate) / 100);
+          var base = bill / divisor;
+          var vat = base * (vatRate / 100);
+          var tax = base * (taxRate / 100);
+          var total = base + vat + tax;
+          return { base: base, vat: vat, tax: tax, total: total, actualPay: base };
+        }
+
+        function modeLabel(mode) {
+          if (mode === 'gross') return t('homeGross');
+          if (mode === 'vendor') return t('homeVendor');
+          if (mode === 'category') return t('homeCategory');
+          return mode;
+        }
+
+        function getCategoryTableHtml() {
+          var rows = '';
+          for (var i = 0; i < categories.length; i++) {
+            var c = categories[i];
+            var name = state.lang === 'bn' ? c.nameBn : c.nameEn;
+            rows += '<tr><td>' + name + '</td><td>' + c.vatRate + '%</td><td>' + c.taxRate + '%</td></tr>';
+          }
+          return '<table><thead><tr><th>' + t('formCategory') + '</th><th>' + t('formVat') + '</th><th>' + t('formTax') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+        }
+
+        function getHistoryHtml() {
+          if (!state.history.length) return '<p class="empty">' + t('historyEmpty') + '</p>';
+          var html = '';
+          for (var i = 0; i < state.history.length; i++) {
+            var item = state.history[i];
+            html += '<article class="history-item">'
+              + '<h4>' + modeLabel(item.mode) + '</h4>'
+              + '<p>' + t('formBill') + ': ' + money(item.input.bill) + '</p>'
+              + '<p>' + t('formVat') + ': ' + item.input.vatRate + '% | ' + t('formTax') + ': ' + item.input.taxRate + '%</p>'
+              + '<p>' + t('resultTotal') + ': ' + money(item.output.total) + '</p>'
+              + '</article>';
+          }
+          return html;
+        }
+
+        function getResultHtml() {
+          if (!state.result) return '<p class="empty">' + t('noResult') + '</p>';
+          var o = state.result.output;
+          return '<table><tbody>'
+            + '<tr><th>' + t('resultMode') + '</th><td>' + modeLabel(state.result.mode) + '</td></tr>'
+            + '<tr><th>' + t('resultBase') + '</th><td>' + money(o.base) + '</td></tr>'
+            + '<tr><th>' + t('resultVat') + '</th><td>' + money(o.vat) + '</td></tr>'
+            + '<tr><th>' + t('resultTax') + '</th><td>' + money(o.tax) + '</td></tr>'
+            + '<tr><th>' + t('resultTotal') + '</th><td>' + money(o.total) + '</td></tr>'
+            + '<tr><th>' + t('resultActual') + '</th><td>' + money(o.actualPay) + '</td></tr>'
+            + '</tbody></table>';
+        }
+
+        function setError(formId, message) {
+          var el = document.querySelector('[data-error-for="' + formId + '"]');
+          if (el) el.textContent = message;
+        }
+
+        function refreshPanels() {
+          var result = document.getElementById('result-table');
+          var hist = document.getElementById('history-area');
+          var list = document.getElementById('category-list');
+          if (result) result.innerHTML = getResultHtml();
+          if (hist) hist.innerHTML = getHistoryHtml();
+          if (list) list.innerHTML = getCategoryTableHtml();
+        }
+
+        function updateShareLinkText(msg) {
+          var n = document.getElementById('share-note');
+          if (n) n.textContent = msg;
+        }
+
+        function buildShareUrl() {
+          if (!state.result) return '';
+          var url = new URL(window.location.href);
+          url.searchParams.set('mode', state.result.mode);
+          url.searchParams.set('bill', String(state.result.input.bill));
+          url.searchParams.set('vat', String(state.result.input.vatRate));
+          url.searchParams.set('tax', String(state.result.input.taxRate));
+          if (state.result.categoryId) url.searchParams.set('category', state.result.categoryId);
+          return url.toString();
+        }
+
+        function bindForm(formId, mode) {
+          var form = document.getElementById(formId);
+          if (!form) return;
+          form.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            var fd = new FormData(form);
+            var bill = parseNum(fd.get('billAmount'));
+            var vatRate = parseNum(fd.get('vatRate'));
+            var taxRate = parseNum(fd.get('taxRate'));
+            var categoryId = String(fd.get('category') || '');
+
+            if (mode === 'category') {
+              var selected = null;
+              for (var i = 0; i < categories.length; i++) {
+                if (categories[i].id === categoryId) {
+                  selected = categories[i];
+                  break;
+                }
+              }
+              if (!selected) {
+                setError(formId, t('validationRequired'));
+                return;
+              }
+              vatRate = selected.vatRate;
+              taxRate = selected.taxRate;
+            }
+
+            if (isNaN(bill) || isNaN(vatRate) || isNaN(taxRate)) {
+              setError(formId, t('validationRequired'));
+              return;
+            }
+
+            var bad = validate({ bill: bill, vatRate: vatRate, taxRate: taxRate });
+            if (bad) {
+              setError(formId, bad);
+              return;
+            }
+
+            var output = mode === 'vendor' ? calcVendor(bill, vatRate, taxRate) : calcGross(bill, vatRate, taxRate);
+            state.result = {
+              mode: mode,
+              categoryId: categoryId,
+              input: { bill: bill, vatRate: vatRate, taxRate: taxRate },
+              output: output,
+              createdAt: new Date().toISOString()
+            };
+
+            state.history = [state.result].concat(state.history).slice(0, 12);
+            saveHistory();
+            setError(formId, '');
+            updateShareLinkText('');
+            refreshPanels();
+          });
+        }
+
+        function bindClearButtons() {
+          var buttons = document.querySelectorAll('[data-clear]');
+          for (var i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function (ev) {
+              var id = ev.currentTarget.getAttribute('data-clear');
+              var form = document.getElementById(id);
+              if (form) form.reset();
+              setError(id, '');
+              state.result = null;
+              updateShareLinkText('');
+              refreshPanels();
+            });
+          }
+        }
+
+        function bindCardScroll() {
+          var cards = document.querySelectorAll('.card');
+          for (var i = 0; i < cards.length; i++) {
+            cards[i].addEventListener('click', function (ev) {
+              var id = ev.currentTarget.getAttribute('data-target');
+              var section = document.getElementById(id);
+              if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+          }
+        }
+
+        function bindCategoryAutoFill() {
+          var sel = document.getElementById('category-select');
+          if (!sel) return;
+          sel.addEventListener('change', function () {
+            var value = sel.value;
+            var selected = null;
+            for (var i = 0; i < categories.length; i++) {
+              if (categories[i].id === value) {
+                selected = categories[i];
+                break;
+              }
+            }
+            var v = document.getElementById('category-vat');
+            var t = document.getElementById('category-tax');
+            if (!selected || !v || !t) return;
+            v.value = selected.vatRate;
+            t.value = selected.taxRate;
+          });
+        }
+
+        function bindShareButton() {
+          var btn = document.getElementById('copy-link');
+          if (!btn) return;
+          btn.addEventListener('click', function () {
+            var link = buildShareUrl();
+            if (!link) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(link).then(function () {
+                updateShareLinkText(t('successLink'));
+              }).catch(function () {
+                updateShareLinkText(t('errorLink'));
+              });
+            } else {
+              updateShareLinkText(link);
+            }
+          });
+        }
+
+        function prefillFromQuery() {
+          var params = new URLSearchParams(window.location.search);
+          if (!params.toString()) return;
+          var mode = params.get('mode');
+          var bill = params.get('bill');
+          var vat = params.get('vat');
+          var tax = params.get('tax');
+          var category = params.get('category');
+
+          function setForm(formId, map) {
+            var f = document.getElementById(formId);
+            if (!f) return;
+            for (var key in map) {
+              if (Object.prototype.hasOwnProperty.call(map, key) && f[key]) {
+                f[key].value = map[key];
+              }
+            }
+          }
+
+          if (mode === 'gross' && bill && vat && tax) setForm('gross-form', { billAmount: bill, vatRate: vat, taxRate: tax });
+          if (mode === 'vendor' && bill && vat && tax) setForm('vendor-form', { billAmount: bill, vatRate: vat, taxRate: tax });
+          if (mode === 'category' && bill && category) {
+            setForm('category-form', { billAmount: bill, category: category });
+            var sel = document.getElementById('category-select');
+            if (sel) sel.dispatchEvent(new Event('change'));
+          }
+        }
+
+        function appHtml() {
+          var options = '<option value="">' + t('selectCategory') + '</option>';
+          for (var i = 0; i < categories.length; i++) {
+            var c = categories[i];
+            options += '<option value="' + c.id + '">' + (state.lang === 'bn' ? c.nameBn : c.nameEn) + '</option>';
+          }
+
+          return ''
+            + '<main class="wrap">'
+            + '  <header class="hero">'
+            + '    <div><h1>' + t('appTitle') + '</h1><p>' + t('appSubtitle') + '</p></div>'
+            + '    <button id="lang-toggle" class="primary">' + t('languageToggle') + '</button>'
+            + '  </header>'
+            + '  <section class="box">'
+            + '    <h2 style="margin:0">' + t('homeTitle') + '</h2>'
+            + '    <div class="cards" style="margin-top:.7rem">'
+            + '      <button class="card" data-target="gross-section"><strong>' + t('homeGross') + '</strong><span>' + t('homeGrossInfo') + '</span></button>'
+            + '      <button class="card" data-target="vendor-section"><strong>' + t('homeVendor') + '</strong><span>' + t('homeVendorInfo') + '</span></button>'
+            + '      <button class="card" data-target="category-section"><strong>' + t('homeCategory') + '</strong><span>' + t('homeCategoryInfo') + '</span></button>'
+            + '    </div>'
+            + '  </section>'
+            + '  <section class="grid">'
+            + '    <article class="box" id="gross-section"><h3 style="margin:0">' + t('grossTitle') + '</h3>'
+            + '      <form id="gross-form">'
+            + '        <label>' + t('formBill') + '<input type="number" name="billAmount" min="0" max="10000000" step="0.01" required></label>'
+            + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
+            + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
+            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="gross-form">' + t('clear') + '</button></div>'
+            + '        <p class="error" data-error-for="gross-form"></p>'
+            + '      </form>'
+            + '    </article>'
+            + '    <article class="box" id="vendor-section"><h3 style="margin:0">' + t('vendorTitle') + '</h3>'
+            + '      <form id="vendor-form">'
+            + '        <label>' + t('formBill') + '<input type="number" name="billAmount" min="0" max="10000000" step="0.01" required></label>'
+            + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
+            + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
+            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="vendor-form">' + t('clear') + '</button></div>'
+            + '        <p class="error" data-error-for="vendor-form"></p>'
+            + '      </form>'
+            + '    </article>'
+            + '    <article class="box" id="category-section"><h3 style="margin:0">' + t('categoryTitle') + '</h3>'
+            + '      <form id="category-form">'
+            + '        <label>' + t('formBill') + '<input type="number" name="billAmount" min="0" max="10000000" step="0.01" required></label>'
+            + '        <label>' + t('formCategory') + '<select id="category-select" name="category" required>' + options + '</select></label>'
+            + '        <label>' + t('formVat') + '<input id="category-vat" type="number" name="vatRate" readonly required></label>'
+            + '        <label>' + t('formTax') + '<input id="category-tax" type="number" name="taxRate" readonly required></label>'
+            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="category-form">' + t('clear') + '</button></div>'
+            + '        <p class="error" data-error-for="category-form"></p>'
+            + '      </form>'
+            + '    </article>'
+            + '  </section>'
+            + '  <section class="out-grid">'
+            + '    <section class="result"><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note"></p></section>'
+            + '    <section class="history"><h3 style="margin:0">' + t('historyTitle') + '</h3><div id="history-area" style="margin-top:.65rem"></div></section>'
+            + '  </section>'
+            + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div></section>'
+            + '  <footer>' + t('footerText') + '</footer>'
+            + '</main>';
+        }
+
+        function render() {
+          var app = document.getElementById('app');
+          if (!app) return;
+          app.innerHTML = appHtml();
+
+          var langBtn = document.getElementById('lang-toggle');
+          if (langBtn) {
+            langBtn.addEventListener('click', function () {
+              state.lang = state.lang === 'bn' ? 'en' : 'bn';
+              render();
+            });
+          }
+
+          bindCardScroll();
+          bindCategoryAutoFill();
+          bindForm('gross-form', 'gross');
+          bindForm('vendor-form', 'vendor');
+          bindForm('category-form', 'category');
+          bindClearButtons();
+          bindShareButton();
+          prefillFromQuery();
+          refreshPanels();
+        }
+
+        function fail(msg) {
+          var app = document.getElementById('app');
+          if (!app) return;
+          app.innerHTML = '<div class="fatal"><h2>Runtime Error</h2><p>' + msg + '</p></div>';
+        }
+
+        try {
+          state.history = loadHistory();
+          render();
+        } catch (e) {
+          fail('The app failed to start. Please refresh and try again.');
+        }
+      })();
+    </script>
   </body>
 </html>
