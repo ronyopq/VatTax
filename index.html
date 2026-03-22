@@ -73,6 +73,14 @@
       .compare-grid { display: grid; gap: 0.7rem; grid-template-columns: 1fr 1fr; }
       .compare-box { border: 1px solid #d7e3d4; border-radius: 10px; padding: 0.7rem; background: #fbfef9; }
       .compare-summary { border: 1px dashed #c4d5c2; border-radius: 10px; padding: 0.7rem; background: #f5faf2; }
+      .audit-list { display: grid; gap: 0.5rem; }
+      .audit-item { border: 1px solid #d7e3d4; background: #f8fcf7; border-radius: 9px; padding: 0.55rem 0.65rem; }
+      .audit-item h4 { margin: 0; font-size: 0.9rem; color: #1c5642; }
+      .audit-item p { margin: 0.2rem 0 0; color: #4e6459; font-size: 0.85rem; }
+      .print-banner { display: none; }
+      .org-row { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; }
+      .org-row label { min-width: 260px; margin: 0; }
+      .screen-only { display: block; }
       .fireworks-canvas {
         position: fixed;
         inset: 0;
@@ -102,6 +110,16 @@
         .actions { flex-direction: column; }
         .head { flex-direction: column; align-items: stretch; }
         .kpi-grid, .compare-grid { grid-template-columns: 1fr; }
+      }
+
+      @media print {
+        body { background: #fff; }
+        #app { width: 100%; margin: 0; }
+        .screen-only, .hero, .cards, .grid, .history, .kpi-grid, .pro-tools, #compare-out, #category-list, .category-list, .fireworks-canvas, #pro-note, .note { display: none !important; }
+        .print-banner { display: block; border: 1px solid #cad6c8; border-radius: 10px; padding: 0.7rem 0.8rem; margin-bottom: 0.6rem; }
+        .print-banner h2 { margin: 0; font-size: 1.1rem; }
+        .print-banner p { margin: 0.2rem 0 0; font-size: 0.86rem; color: #2d473d; }
+        .box, .result { border-color: #d6ded4; box-shadow: none; }
       }
     </style>
   </head>
@@ -151,6 +169,16 @@
             exportCsv: 'Export CSV',
             printReport: 'Print Report',
             clearHistory: 'Clear History',
+            formulaAuditTitle: 'Formula Audit Trail',
+            reportTitle: 'VAT & TAX Calculation Report',
+            generatedAt: 'Generated At',
+            organization: 'Organization',
+            defaultOrg: 'Public Finance Team',
+            baseFormula: 'Base Formula',
+            vatFormula: 'VAT Formula',
+            taxFormula: 'TAX Formula',
+            totalFormula: 'Total Formula',
+            actualFormula: 'Actual Pay Formula',
             resultTitle: 'Calculation Result',
             analyticsTitle: 'Quick Analytics',
             resultMode: 'Mode',
@@ -212,6 +240,16 @@
             exportCsv: 'CSV ডাউনলোড',
             printReport: 'প্রিন্ট রিপোর্ট',
             clearHistory: 'হিস্টোরি মুছুন',
+            formulaAuditTitle: 'ফর্মুলা অডিট ট্রেইল',
+            reportTitle: 'VAT ও TAX হিসাব রিপোর্ট',
+            generatedAt: 'রিপোর্ট সময়',
+            organization: 'প্রতিষ্ঠান',
+            defaultOrg: 'Public Finance Team',
+            baseFormula: 'বেইজ ফর্মুলা',
+            vatFormula: 'VAT ফর্মুলা',
+            taxFormula: 'TAX ফর্মুলা',
+            totalFormula: 'মোট ফর্মুলা',
+            actualFormula: 'Actual Pay ফর্মুলা',
             resultTitle: 'হিসাবের ফলাফল',
             analyticsTitle: 'দ্রুত অ্যানালিটিক্স',
             resultMode: 'মোড',
@@ -255,7 +293,9 @@
           result: null,
           history: [],
           compareResult: null,
-          sharedBillText: '10000'
+          sharedBillText: '10000',
+          orgName: 'Public Finance Team',
+          printTime: ''
         };
 
         function storageGet() {
@@ -409,6 +449,40 @@
             + '</tbody></table>';
         }
 
+        function getAuditHtml() {
+          if (!state.result) return '<p class="empty">' + t('noResult') + '</p>';
+          var r = state.result;
+          var out = r.output;
+          var mode = r.mode;
+          var rateSum = (r.input.vatRate + r.input.taxRate) / 100;
+
+          var baseLine = mode === 'vendor'
+            ? t('resultBase') + ' = ' + money(r.input.bill) + ' / (1 + ' + rateSum.toFixed(4) + ') = ' + money(out.base)
+            : t('resultBase') + ' = ' + money(r.input.bill);
+
+          var vatLine = t('resultVat') + ' = ' + money(out.base) + ' x (' + r.input.vatRate + '/100) = ' + money(out.vat);
+          var taxLine = t('resultTax') + ' = ' + money(out.base) + ' x (' + r.input.taxRate + '/100) = ' + money(out.tax);
+          var totalLine = t('resultTotal') + ' = ' + money(out.base) + ' + ' + money(out.vat) + ' + ' + money(out.tax) + ' = ' + money(out.total);
+          var actualLine = t('resultActual') + ' = ' + money(out.actualPay);
+
+          return '<div class="audit-list">'
+            + '<article class="audit-item"><h4>' + t('baseFormula') + '</h4><p>' + baseLine + '</p></article>'
+            + '<article class="audit-item"><h4>' + t('vatFormula') + '</h4><p>' + vatLine + '</p></article>'
+            + '<article class="audit-item"><h4>' + t('taxFormula') + '</h4><p>' + taxLine + '</p></article>'
+            + '<article class="audit-item"><h4>' + t('totalFormula') + '</h4><p>' + totalLine + '</p></article>'
+            + '<article class="audit-item"><h4>' + t('actualFormula') + '</h4><p>' + actualLine + '</p></article>'
+            + '</div>';
+        }
+
+        function getPrintBannerHtml() {
+          var timeText = state.printTime || new Date().toLocaleString();
+          return '<div class="print-banner">'
+            + '<h2>' + t('reportTitle') + '</h2>'
+            + '<p>' + t('organization') + ': ' + state.orgName + '</p>'
+            + '<p>' + t('generatedAt') + ': ' + timeText + '</p>'
+            + '</div>';
+        }
+
         function setError(formId, message) {
           var el = document.querySelector('[data-error-for="' + formId + '"]');
           if (el) el.textContent = message;
@@ -420,11 +494,15 @@
           var list = document.getElementById('category-list');
           var kpi = document.getElementById('kpi-area');
           var compare = document.getElementById('compare-out');
+          var audit = document.getElementById('audit-area');
+          var printBanner = document.getElementById('print-banner-area');
           if (result) result.innerHTML = getResultHtml();
           if (hist) hist.innerHTML = getHistoryHtml();
           if (list) list.innerHTML = getCategoryTableHtml();
           if (kpi) kpi.innerHTML = getKpiHtml();
           if (compare) compare.innerHTML = getCompareHtml();
+          if (audit) audit.innerHTML = getAuditHtml();
+          if (printBanner) printBanner.innerHTML = getPrintBannerHtml();
         }
 
         function updateShareLinkText(msg) {
@@ -622,6 +700,8 @@
           var printBtn = document.getElementById('print-report');
           if (printBtn) {
             printBtn.addEventListener('click', function () {
+              state.printTime = new Date().toLocaleString();
+              refreshPanels();
               window.print();
             });
           }
@@ -689,6 +769,15 @@
           input.value = state.sharedBillText;
           input.addEventListener('input', function () {
             state.sharedBillText = input.value;
+          });
+        }
+
+        function bindOrgName() {
+          var input = document.getElementById('org-name');
+          if (!input) return;
+          input.value = state.orgName;
+          input.addEventListener('input', function () {
+            state.orgName = input.value || t('defaultOrg');
           });
         }
 
@@ -804,6 +893,11 @@
             + '      <p>' + t('sharedAmountHint') + '</p>'
             + '    </div>'
             + '  </section>'
+            + '  <section class="box screen-only">'
+            + '    <div class="org-row">'
+            + '      <label>' + t('organization') + '<input id="org-name" type="text" /></label>'
+            + '    </div>'
+            + '  </section>'
             + '  <section class="box">'
             + '    <h2 style="margin:0">' + t('homeTitle') + '</h2>'
             + '    <div class="cards" style="margin-top:.7rem">'
@@ -840,7 +934,7 @@
             + '    </article>'
             + '  </section>'
             + '  <section class="out-grid">'
-            + '    <section class="result"><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note"></p></section>'
+            + '    <section class="result"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
             + '    <section class="history sticky-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" style="margin-top:.25rem"></div></section>'
             + '  </section>'
             + '  <section class="box">'
@@ -873,6 +967,10 @@
             + '    <div style="margin-top:.6rem"><button id="run-compare" class="primary" type="button">' + t('compareRun') + '</button></div>'
             + '    <div id="compare-out" class="compare-summary" style="margin-top:.65rem"></div>'
             + '  </section>'
+            + '  <section class="box">'
+            + '    <h3 style="margin:0 0 .65rem">' + t('formulaAuditTitle') + '</h3>'
+            + '    <div id="audit-area"></div>'
+            + '  </section>'
             + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div></section>'
             + '  <footer>' + t('footerText') + '</footer>'
             + '</main>';
@@ -893,6 +991,7 @@
 
           bindCardScroll();
           bindSharedAmount();
+          bindOrgName();
           bindCategoryAutoFill();
           bindForm('gross-form', 'gross');
           bindForm('vendor-form', 'vendor');
