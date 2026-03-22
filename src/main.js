@@ -4,6 +4,30 @@ import categories from './data/categories.json'
 const BILL_MAX = 10_000_000
 const HISTORY_KEY = 'bd_vat_tax_history_v1'
 
+function getStorage() {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
+function showFatalError(message) {
+  const app = document.querySelector('#app')
+  if (!app) {
+    return
+  }
+  app.innerHTML = `
+    <main class="fatal-wrap">
+      <section class="fatal-card">
+        <h1>Something went wrong</h1>
+        <p>${message}</p>
+        <p>Please refresh the page. If the issue continues, open in normal browser mode.</p>
+      </section>
+    </main>
+  `
+}
+
 const labels = {
   en: {
     appTitle: 'Bangladesh VAT & TAX Calculator',
@@ -151,11 +175,28 @@ function vendorCalculation(bill, vatRate, taxRate) {
 
 function storeHistory(entry) {
   appState.history = [entry, ...appState.history].slice(0, 12)
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(appState.history))
+  const storage = getStorage()
+  if (!storage) {
+    return
+  }
+  try {
+    storage.setItem(HISTORY_KEY, JSON.stringify(appState.history))
+  } catch {
+    // Ignore quota/security errors; history remains in-memory.
+  }
 }
 
 function loadHistory() {
-  const raw = localStorage.getItem(HISTORY_KEY)
+  const storage = getStorage()
+  if (!storage) {
+    return []
+  }
+  let raw = null
+  try {
+    raw = storage.getItem(HISTORY_KEY)
+  } catch {
+    return []
+  }
   if (!raw) {
     return []
   }
@@ -562,4 +603,15 @@ function renderApp() {
   renderResults()
 }
 
-renderApp()
+try {
+  renderApp()
+} catch {
+  showFatalError('The app failed to load due to a browser runtime error.')
+}
+
+window.addEventListener('error', () => {
+  const hasAppContent = document.querySelector('#app')?.children.length
+  if (!hasAppContent) {
+    showFatalError('A script error prevented the page from rendering.')
+  }
+})
