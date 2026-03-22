@@ -61,6 +61,15 @@
       .history-item { border: 1px solid #d7e3d4; border-radius: 9px; padding: 0.6rem; margin-bottom: 0.55rem; background: #fdfefb; }
       .history-item h4 { margin: 0; color: #17543e; }
       .history-item p { margin: 0.2rem 0 0; color: #4e6459; font-size: 0.85rem; }
+      .history-item small { color: #6a7b71; display: block; margin-top: 0.25rem; }
+      .kpi-grid { display: grid; gap: 0.6rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .kpi { border: 1px solid #d7e3d4; background: #f7fcf5; border-radius: 9px; padding: 0.65rem; }
+      .kpi h4 { margin: 0; color: #1c5642; font-size: 0.85rem; }
+      .kpi p { margin: 0.3rem 0 0; font-size: 1.02rem; font-weight: 700; }
+      .pro-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      .compare-grid { display: grid; gap: 0.7rem; grid-template-columns: 1fr 1fr; }
+      .compare-box { border: 1px solid #d7e3d4; border-radius: 10px; padding: 0.7rem; background: #fbfef9; }
+      .compare-summary { border: 1px dashed #c4d5c2; border-radius: 10px; padding: 0.7rem; background: #f5faf2; }
       footer { text-align: center; color: #50655a; font-size: 0.9rem; padding: 0.75rem; }
       .fatal {
         border: 1px solid #f0c3c3;
@@ -80,6 +89,7 @@
         .cards, .grid { grid-template-columns: 1fr; }
         .actions { flex-direction: column; }
         .head { flex-direction: column; align-items: stretch; }
+        .kpi-grid, .compare-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -124,7 +134,11 @@
             calculate: 'Calculate',
             clear: 'Clear',
             copyLink: 'Share Result Link',
+            exportCsv: 'Export CSV',
+            printReport: 'Print Report',
+            clearHistory: 'Clear History',
             resultTitle: 'Calculation Result',
+            analyticsTitle: 'Quick Analytics',
             resultMode: 'Mode',
             resultBase: 'Base Value',
             resultVat: 'VAT Amount',
@@ -135,6 +149,16 @@
             noResult: 'No result yet. Submit the form to see output.',
             historyTitle: 'Recent Calculation History',
             historyEmpty: 'No history found.',
+            compareTitle: 'Scenario Compare (Pro)',
+            scenarioA: 'Scenario A',
+            scenarioB: 'Scenario B',
+            compareResultTitle: 'Compare Summary',
+            compareMode: 'Type',
+            compareRun: 'Run Compare',
+            totalDiff: 'Total Difference',
+            payDiff: 'Actual Pay Difference',
+            winText: 'Lower Pay Scenario',
+            invalidCompare: 'Please provide valid numbers for both scenarios.',
             footerText: 'Built for Bangladesh VAT/TAX quick estimation.',
             validationRequired: 'All fields are required.',
             validationNumeric: 'Only numeric input is allowed.',
@@ -143,6 +167,8 @@
             validationBillMax: 'Bill amount cannot exceed 1 crore (10,000,000).',
             successLink: 'Result link copied.',
             errorLink: 'Could not copy link in this browser.',
+            csvReady: 'CSV downloaded.',
+            historyCleared: 'History cleared.',
             selectCategory: 'Select category',
             languageToggle: 'বাংলা'
           },
@@ -166,7 +192,11 @@
             calculate: 'হিসাব করুন',
             clear: 'রিসেট',
             copyLink: 'ফলাফলের লিংক কপি',
+            exportCsv: 'CSV ডাউনলোড',
+            printReport: 'প্রিন্ট রিপোর্ট',
+            clearHistory: 'হিস্টোরি মুছুন',
             resultTitle: 'হিসাবের ফলাফল',
+            analyticsTitle: 'দ্রুত অ্যানালিটিক্স',
             resultMode: 'মোড',
             resultBase: 'বেইজ ভ্যালু',
             resultVat: 'VAT এমাউন্ট',
@@ -177,6 +207,16 @@
             noResult: 'এখনও কোনো ফলাফল নেই।',
             historyTitle: 'সাম্প্রতিক হিসাব',
             historyEmpty: 'কোনো হিসাব পাওয়া যায়নি।',
+            compareTitle: 'সিনারিও কম্পেয়ার (প্রো)',
+            scenarioA: 'সিনারিও A',
+            scenarioB: 'সিনারিও B',
+            compareResultTitle: 'কম্পেয়ার সারাংশ',
+            compareMode: 'টাইপ',
+            compareRun: 'কম্পেয়ার করুন',
+            totalDiff: 'মোট পার্থক্য',
+            payDiff: 'Actual Pay পার্থক্য',
+            winText: 'কম Pay সিনারিও',
+            invalidCompare: 'দুই সিনারিওর জন্য সঠিক সংখ্যা দিন।',
             footerText: 'বাংলাদেশ VAT/TAX দ্রুত হিসাবের জন্য তৈরি।',
             validationRequired: 'সব ইনপুট পূরণ করতে হবে।',
             validationNumeric: 'শুধু সংখ্যা ইনপুট দিন।',
@@ -185,6 +225,8 @@
             validationBillMax: 'বিল এমাউন্ট ১ কোটির বেশি হতে পারবে না।',
             successLink: 'ফলাফলের লিংক কপি হয়েছে।',
             errorLink: 'এই ব্রাউজারে লিংক কপি করা যায়নি।',
+            csvReady: 'CSV ডাউনলোড হয়েছে।',
+            historyCleared: 'হিস্টোরি মুছে ফেলা হয়েছে।',
             selectCategory: 'ক্যাটাগরি নির্বাচন করুন',
             languageToggle: 'English'
           }
@@ -193,7 +235,8 @@
         var state = {
           lang: 'bn',
           result: null,
-          history: []
+          history: [],
+          compareResult: null
         };
 
         function storageGet() {
@@ -267,6 +310,10 @@
           return mode;
         }
 
+        function calcByMode(mode, bill, vatRate, taxRate) {
+          return mode === 'vendor' ? calcVendor(bill, vatRate, taxRate) : calcGross(bill, vatRate, taxRate);
+        }
+
         function getCategoryTableHtml() {
           var rows = '';
           for (var i = 0; i < categories.length; i++) {
@@ -287,9 +334,37 @@
               + '<p>' + t('formBill') + ': ' + money(item.input.bill) + '</p>'
               + '<p>' + t('formVat') + ': ' + item.input.vatRate + '% | ' + t('formTax') + ': ' + item.input.taxRate + '%</p>'
               + '<p>' + t('resultTotal') + ': ' + money(item.output.total) + '</p>'
+              + '<small>' + new Date(item.createdAt).toLocaleString() + '</small>'
               + '</article>';
           }
           return html;
+        }
+
+        function getKpiHtml() {
+          if (!state.history.length) return '<p class="empty">' + t('historyEmpty') + '</p>';
+          var totalBills = 0;
+          var totalVat = 0;
+          var totalTax = 0;
+          for (var i = 0; i < state.history.length; i++) {
+            totalBills += Number(state.history[i].input.bill || 0);
+            totalVat += Number(state.history[i].output.vat || 0);
+            totalTax += Number(state.history[i].output.tax || 0);
+          }
+          return '<div class="kpi-grid">'
+            + '<article class="kpi"><h4>' + t('formBill') + '</h4><p>' + money(totalBills) + '</p></article>'
+            + '<article class="kpi"><h4>' + t('resultVat') + '</h4><p>' + money(totalVat) + '</p></article>'
+            + '<article class="kpi"><h4>' + t('resultTax') + '</h4><p>' + money(totalTax) + '</p></article>'
+            + '</div>';
+        }
+
+        function getCompareHtml() {
+          if (!state.compareResult) return '<p class="empty">' + t('noResult') + '</p>';
+          var r = state.compareResult;
+          return '<table><tbody>'
+            + '<tr><th>' + t('totalDiff') + '</th><td>' + money(r.totalDiff) + '</td></tr>'
+            + '<tr><th>' + t('payDiff') + '</th><td>' + money(r.payDiff) + '</td></tr>'
+            + '<tr><th>' + t('winText') + '</th><td>' + r.better + '</td></tr>'
+            + '</tbody></table>';
         }
 
         function getResultHtml() {
@@ -314,13 +389,22 @@
           var result = document.getElementById('result-table');
           var hist = document.getElementById('history-area');
           var list = document.getElementById('category-list');
+          var kpi = document.getElementById('kpi-area');
+          var compare = document.getElementById('compare-out');
           if (result) result.innerHTML = getResultHtml();
           if (hist) hist.innerHTML = getHistoryHtml();
           if (list) list.innerHTML = getCategoryTableHtml();
+          if (kpi) kpi.innerHTML = getKpiHtml();
+          if (compare) compare.innerHTML = getCompareHtml();
         }
 
         function updateShareLinkText(msg) {
           var n = document.getElementById('share-note');
+          if (n) n.textContent = msg;
+        }
+
+        function updateProNote(msg) {
+          var n = document.getElementById('pro-note');
           if (n) n.textContent = msg;
         }
 
@@ -454,6 +538,111 @@
           });
         }
 
+        function csvEscape(value) {
+          var str = String(value == null ? '' : value);
+          if (str.indexOf('"') > -1 || str.indexOf(',') > -1 || str.indexOf('\n') > -1) {
+            return '"' + str.replace(/"/g, '""') + '"';
+          }
+          return str;
+        }
+
+        function downloadCsv() {
+          var rows = [
+            ['Date', 'Mode', 'Bill', 'VAT Rate', 'TAX Rate', 'Base', 'VAT', 'TAX', 'Total', 'Actual Pay']
+          ];
+          for (var i = 0; i < state.history.length; i++) {
+            var h = state.history[i];
+            rows.push([
+              new Date(h.createdAt).toISOString(),
+              h.mode,
+              h.input.bill,
+              h.input.vatRate,
+              h.input.taxRate,
+              h.output.base,
+              h.output.vat,
+              h.output.tax,
+              h.output.total,
+              h.output.actualPay
+            ]);
+          }
+          var csv = '';
+          for (var r = 0; r < rows.length; r++) {
+            var line = [];
+            for (var c = 0; c < rows[r].length; c++) {
+              line.push(csvEscape(rows[r][c]));
+            }
+            csv += line.join(',') + '\n';
+          }
+          var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'vat-tax-history.csv';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          updateProNote(t('csvReady'));
+        }
+
+        function bindProButtons() {
+          var csvBtn = document.getElementById('export-csv');
+          if (csvBtn) csvBtn.addEventListener('click', downloadCsv);
+
+          var printBtn = document.getElementById('print-report');
+          if (printBtn) {
+            printBtn.addEventListener('click', function () {
+              window.print();
+            });
+          }
+
+          var clearBtn = document.getElementById('clear-history');
+          if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+              state.history = [];
+              saveHistory();
+              refreshPanels();
+              updateProNote(t('historyCleared'));
+            });
+          }
+        }
+
+        function bindCompareEngine() {
+          var btn = document.getElementById('run-compare');
+          if (!btn) return;
+          btn.addEventListener('click', function () {
+            var aMode = document.getElementById('cmp-a-mode').value;
+            var aBill = parseNum(document.getElementById('cmp-a-bill').value);
+            var aVat = parseNum(document.getElementById('cmp-a-vat').value);
+            var aTax = parseNum(document.getElementById('cmp-a-tax').value);
+            var bMode = document.getElementById('cmp-b-mode').value;
+            var bBill = parseNum(document.getElementById('cmp-b-bill').value);
+            var bVat = parseNum(document.getElementById('cmp-b-vat').value);
+            var bTax = parseNum(document.getElementById('cmp-b-tax').value);
+
+            var badA = validate({ bill: aBill, vatRate: aVat, taxRate: aTax });
+            var badB = validate({ bill: bBill, vatRate: bVat, taxRate: bTax });
+            if (badA || badB) {
+              updateProNote(t('invalidCompare'));
+              return;
+            }
+
+            var outA = calcByMode(aMode, aBill, aVat, aTax);
+            var outB = calcByMode(bMode, bBill, bVat, bTax);
+            var totalDiff = outA.total - outB.total;
+            var payDiff = outA.actualPay - outB.actualPay;
+            var better = outA.actualPay <= outB.actualPay ? t('scenarioA') : t('scenarioB');
+
+            state.compareResult = {
+              totalDiff: totalDiff,
+              payDiff: payDiff,
+              better: better
+            };
+            updateProNote('');
+            refreshPanels();
+          });
+        }
+
         function prefillFromQuery() {
           var params = new URLSearchParams(window.location.search);
           if (!params.toString()) return;
@@ -537,6 +726,37 @@
             + '    <section class="result"><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note"></p></section>'
             + '    <section class="history"><h3 style="margin:0">' + t('historyTitle') + '</h3><div id="history-area" style="margin-top:.65rem"></div></section>'
             + '  </section>'
+            + '  <section class="box">'
+            + '    <h3 style="margin:0 0 .65rem">' + t('analyticsTitle') + '</h3>'
+            + '    <div id="kpi-area"></div>'
+            + '    <div class="pro-tools" style="margin-top:.75rem">'
+            + '      <button id="export-csv" class="ghost" type="button">' + t('exportCsv') + '</button>'
+            + '      <button id="print-report" class="ghost" type="button">' + t('printReport') + '</button>'
+            + '      <button id="clear-history" class="ghost" type="button">' + t('clearHistory') + '</button>'
+            + '    </div>'
+            + '    <p id="pro-note" class="note"></p>'
+            + '  </section>'
+            + '  <section class="box">'
+            + '    <h3 style="margin:0 0 .65rem">' + t('compareTitle') + '</h3>'
+            + '    <div class="compare-grid">'
+            + '      <div class="compare-box">'
+            + '        <h4 style="margin:0 0 .5rem">' + t('scenarioA') + '</h4>'
+            + '        <label>' + t('compareMode') + '<select id="cmp-a-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
+            + '        <label>' + t('formBill') + '<input id="cmp-a-bill" type="number" step="0.01" min="0" max="10000000" value="10000" /></label>'
+            + '        <label>' + t('formVat') + '<input id="cmp-a-vat" type="number" step="0.01" min="0" max="100" value="15" /></label>'
+            + '        <label>' + t('formTax') + '<input id="cmp-a-tax" type="number" step="0.01" min="0" max="100" value="5" /></label>'
+            + '      </div>'
+            + '      <div class="compare-box">'
+            + '        <h4 style="margin:0 0 .5rem">' + t('scenarioB') + '</h4>'
+            + '        <label>' + t('compareMode') + '<select id="cmp-b-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
+            + '        <label>' + t('formBill') + '<input id="cmp-b-bill" type="number" step="0.01" min="0" max="10000000" value="10000" /></label>'
+            + '        <label>' + t('formVat') + '<input id="cmp-b-vat" type="number" step="0.01" min="0" max="100" value="10" /></label>'
+            + '        <label>' + t('formTax') + '<input id="cmp-b-tax" type="number" step="0.01" min="0" max="100" value="3" /></label>'
+            + '      </div>'
+            + '    </div>'
+            + '    <div style="margin-top:.6rem"><button id="run-compare" class="primary" type="button">' + t('compareRun') + '</button></div>'
+            + '    <div id="compare-out" class="compare-summary" style="margin-top:.65rem"></div>'
+            + '  </section>'
             + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div></section>'
             + '  <footer>' + t('footerText') + '</footer>'
             + '</main>';
@@ -562,6 +782,8 @@
           bindForm('category-form', 'category');
           bindClearButtons();
           bindShareButton();
+          bindProButtons();
+          bindCompareEngine();
           prefillFromQuery();
           refreshPanels();
         }
