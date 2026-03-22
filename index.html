@@ -36,6 +36,8 @@
       .hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
       .hero h1 { margin: 0; font-size: clamp(1.25rem, 2.8vw, 2rem); }
       .hero p { margin: 0.45rem 0 0; color: var(--muted); }
+      .amount-wrap { display: grid; gap: 0.35rem; }
+      .amount-wrap p { margin: 0; color: #4f665a; font-size: 0.85rem; }
       button { border: 0; border-radius: 9px; padding: 0.62rem 0.9rem; font-weight: 700; cursor: pointer; }
       .primary { color: #fff; background: var(--brand); }
       .ghost { background: #eff5ee; border: 1px solid #d6e2d3; color: #24372d; }
@@ -52,6 +54,7 @@
       .actions button { flex: 1; }
       .error { margin: 0; color: var(--danger); min-height: 1rem; font-size: 0.82rem; }
       .out-grid { display: grid; gap: 0.8rem; grid-template-columns: 1.2fr 0.8fr; }
+      .sticky-history { position: sticky; top: 0.8rem; align-self: start; }
       .head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem; }
       table { width: 100%; border-collapse: collapse; }
       th, td { border: 1px solid #d3dfd0; padding: 0.55rem 0.7rem; text-align: left; }
@@ -70,6 +73,14 @@
       .compare-grid { display: grid; gap: 0.7rem; grid-template-columns: 1fr 1fr; }
       .compare-box { border: 1px solid #d7e3d4; border-radius: 10px; padding: 0.7rem; background: #fbfef9; }
       .compare-summary { border: 1px dashed #c4d5c2; border-radius: 10px; padding: 0.7rem; background: #f5faf2; }
+      .fireworks-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        pointer-events: none;
+      }
       footer { text-align: center; color: #50655a; font-size: 0.9rem; padding: 0.75rem; }
       .fatal {
         border: 1px solid #f0c3c3;
@@ -83,6 +94,7 @@
         .grid { grid-template-columns: 1fr 1fr; }
         .grid .box:last-child { grid-column: 1 / -1; }
         .out-grid { grid-template-columns: 1fr; }
+        .sticky-history { position: static; }
       }
       @media (max-width: 720px) {
         .hero { flex-direction: column; }
@@ -128,6 +140,8 @@
             vendorTitle: 'Procurement / Vendor Calculator',
             categoryTitle: 'Category-Based Calculator',
             formBill: 'Bill Amount',
+            sharedAmount: 'Bill Amount (Single Input)',
+            sharedAmountHint: 'You can use English or Bengali numbers, e.g. 50000 or ৫০,০০০',
             formVat: 'VAT Rate (%)',
             formTax: 'TAX Rate (%)',
             formCategory: 'Category',
@@ -155,6 +169,7 @@
             compareResultTitle: 'Compare Summary',
             compareMode: 'Type',
             compareRun: 'Run Compare',
+            compareUsesShared: 'Both scenarios use the same shared bill amount.',
             totalDiff: 'Total Difference',
             payDiff: 'Actual Pay Difference',
             winText: 'Lower Pay Scenario',
@@ -186,6 +201,8 @@
             vendorTitle: 'প্রোকিউরমেন্ট / ভেন্ডর ক্যালকুলেটর',
             categoryTitle: 'ক্যাটাগরি ভিত্তিক ক্যালকুলেটর',
             formBill: 'বিল এমাউন্ট',
+            sharedAmount: 'বিল এমাউন্ট (একটিই ইনপুট)',
+            sharedAmountHint: 'ইংরেজি বা বাংলা সংখ্যা দিন, যেমন 50000 বা ৫০,০০০',
             formVat: 'VAT হার (%)',
             formTax: 'TAX হার (%)',
             formCategory: 'ক্যাটাগরি',
@@ -213,6 +230,7 @@
             compareResultTitle: 'কম্পেয়ার সারাংশ',
             compareMode: 'টাইপ',
             compareRun: 'কম্পেয়ার করুন',
+            compareUsesShared: 'দুই সিনারিওতেই উপরের একটাই বিল এমাউন্ট ব্যবহার হবে।',
             totalDiff: 'মোট পার্থক্য',
             payDiff: 'Actual Pay পার্থক্য',
             winText: 'কম Pay সিনারিও',
@@ -236,7 +254,8 @@
           lang: 'bn',
           result: null,
           history: [],
-          compareResult: null
+          compareResult: null,
+          sharedBillText: '10000'
         };
 
         function storageGet() {
@@ -275,7 +294,17 @@
 
         function parseNum(v) {
           if (v === null || v === undefined || v === '') return NaN;
-          return Number(v);
+          var normalized = String(v)
+            .replace(/[০-৯]/g, function (d) { return String('০১২৩৪৫৬৭৮৯'.indexOf(d)); })
+            .replace(/[,،\s]/g, '');
+          return Number(normalized);
+        }
+
+        function getSharedBill() {
+          var input = document.getElementById('shared-bill');
+          if (!input) return parseNum(state.sharedBillText);
+          state.sharedBillText = input.value;
+          return parseNum(input.value);
         }
 
         function validate(payload) {
@@ -425,7 +454,7 @@
           form.addEventListener('submit', function (ev) {
             ev.preventDefault();
             var fd = new FormData(form);
-            var bill = parseNum(fd.get('billAmount'));
+            var bill = getSharedBill();
             var vatRate = parseNum(fd.get('vatRate'));
             var taxRate = parseNum(fd.get('taxRate'));
             var categoryId = String(fd.get('category') || '');
@@ -471,6 +500,7 @@
             setError(formId, '');
             updateShareLinkText('');
             refreshPanels();
+            runFireworks();
           });
         }
 
@@ -605,6 +635,16 @@
               updateProNote(t('historyCleared'));
             });
           }
+
+          var sideClearBtn = document.getElementById('clear-history-side');
+          if (sideClearBtn) {
+            sideClearBtn.addEventListener('click', function () {
+              state.history = [];
+              saveHistory();
+              refreshPanels();
+              updateProNote(t('historyCleared'));
+            });
+          }
         }
 
         function bindCompareEngine() {
@@ -612,11 +652,11 @@
           if (!btn) return;
           btn.addEventListener('click', function () {
             var aMode = document.getElementById('cmp-a-mode').value;
-            var aBill = parseNum(document.getElementById('cmp-a-bill').value);
+            var aBill = getSharedBill();
             var aVat = parseNum(document.getElementById('cmp-a-vat').value);
             var aTax = parseNum(document.getElementById('cmp-a-tax').value);
             var bMode = document.getElementById('cmp-b-mode').value;
-            var bBill = parseNum(document.getElementById('cmp-b-bill').value);
+            var bBill = getSharedBill();
             var bVat = parseNum(document.getElementById('cmp-b-vat').value);
             var bTax = parseNum(document.getElementById('cmp-b-tax').value);
 
@@ -643,6 +683,79 @@
           });
         }
 
+        function bindSharedAmount() {
+          var input = document.getElementById('shared-bill');
+          if (!input) return;
+          input.value = state.sharedBillText;
+          input.addEventListener('input', function () {
+            state.sharedBillText = input.value;
+          });
+        }
+
+        function runFireworks() {
+          var old = document.getElementById('fireworks-canvas');
+          if (old && old.parentNode) old.parentNode.removeChild(old);
+
+          var canvas = document.createElement('canvas');
+          canvas.id = 'fireworks-canvas';
+          canvas.className = 'fireworks-canvas';
+          document.body.appendChild(canvas);
+
+          var ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          var w = canvas.width = window.innerWidth;
+          var h = canvas.height = window.innerHeight;
+          var colors = ['#ff4d6d', '#ffd166', '#06d6a0', '#4cc9f0', '#f72585', '#f77f00'];
+          var particles = [];
+          var bursts = 7;
+
+          for (var b = 0; b < bursts; b++) {
+            var cx = Math.random() * w;
+            var cy = Math.random() * (h * 0.6);
+            for (var i = 0; i < 46; i++) {
+              var angle = (Math.PI * 2 * i) / 46;
+              var speed = 2 + Math.random() * 4;
+              particles.push({
+                x: cx,
+                y: cy,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 45 + Math.random() * 25,
+                color: colors[Math.floor(Math.random() * colors.length)]
+              });
+            }
+          }
+
+          function frame() {
+            ctx.clearRect(0, 0, w, h);
+            for (var j = particles.length - 1; j >= 0; j--) {
+              var p = particles[j];
+              p.x += p.vx;
+              p.y += p.vy;
+              p.vy += 0.05;
+              p.life -= 1;
+              if (p.life <= 0) {
+                particles.splice(j, 1);
+                continue;
+              }
+              ctx.globalAlpha = Math.max(0, p.life / 70);
+              ctx.fillStyle = p.color;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 2.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            if (particles.length) {
+              requestAnimationFrame(frame);
+            } else if (canvas.parentNode) {
+              canvas.parentNode.removeChild(canvas);
+            }
+          }
+
+          frame();
+        }
+
         function prefillFromQuery() {
           var params = new URLSearchParams(window.location.search);
           if (!params.toString()) return;
@@ -662,10 +775,11 @@
             }
           }
 
-          if (mode === 'gross' && bill && vat && tax) setForm('gross-form', { billAmount: bill, vatRate: vat, taxRate: tax });
-          if (mode === 'vendor' && bill && vat && tax) setForm('vendor-form', { billAmount: bill, vatRate: vat, taxRate: tax });
+          if (bill) state.sharedBillText = bill;
+          if (mode === 'gross' && vat && tax) setForm('gross-form', { vatRate: vat, taxRate: tax });
+          if (mode === 'vendor' && vat && tax) setForm('vendor-form', { vatRate: vat, taxRate: tax });
           if (mode === 'category' && bill && category) {
-            setForm('category-form', { billAmount: bill, category: category });
+            setForm('category-form', { category: category });
             var sel = document.getElementById('category-select');
             if (sel) sel.dispatchEvent(new Event('change'));
           }
@@ -685,6 +799,12 @@
             + '    <button id="lang-toggle" class="primary">' + t('languageToggle') + '</button>'
             + '  </header>'
             + '  <section class="box">'
+            + '    <div class="amount-wrap">'
+            + '      <label>' + t('sharedAmount') + '<input id="shared-bill" type="text" inputmode="decimal" placeholder="10000 / ১০,০০০" /></label>'
+            + '      <p>' + t('sharedAmountHint') + '</p>'
+            + '    </div>'
+            + '  </section>'
+            + '  <section class="box">'
             + '    <h2 style="margin:0">' + t('homeTitle') + '</h2>'
             + '    <div class="cards" style="margin-top:.7rem">'
             + '      <button class="card" data-target="gross-section"><strong>' + t('homeGross') + '</strong><span>' + t('homeGrossInfo') + '</span></button>'
@@ -695,7 +815,6 @@
             + '  <section class="grid">'
             + '    <article class="box" id="gross-section"><h3 style="margin:0">' + t('grossTitle') + '</h3>'
             + '      <form id="gross-form">'
-            + '        <label>' + t('formBill') + '<input type="number" name="billAmount" min="0" max="10000000" step="0.01" required></label>'
             + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
             + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
             + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="gross-form">' + t('clear') + '</button></div>'
@@ -704,7 +823,6 @@
             + '    </article>'
             + '    <article class="box" id="vendor-section"><h3 style="margin:0">' + t('vendorTitle') + '</h3>'
             + '      <form id="vendor-form">'
-            + '        <label>' + t('formBill') + '<input type="number" name="billAmount" min="0" max="10000000" step="0.01" required></label>'
             + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
             + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
             + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="vendor-form">' + t('clear') + '</button></div>'
@@ -713,7 +831,6 @@
             + '    </article>'
             + '    <article class="box" id="category-section"><h3 style="margin:0">' + t('categoryTitle') + '</h3>'
             + '      <form id="category-form">'
-            + '        <label>' + t('formBill') + '<input type="number" name="billAmount" min="0" max="10000000" step="0.01" required></label>'
             + '        <label>' + t('formCategory') + '<select id="category-select" name="category" required>' + options + '</select></label>'
             + '        <label>' + t('formVat') + '<input id="category-vat" type="number" name="vatRate" readonly required></label>'
             + '        <label>' + t('formTax') + '<input id="category-tax" type="number" name="taxRate" readonly required></label>'
@@ -724,7 +841,7 @@
             + '  </section>'
             + '  <section class="out-grid">'
             + '    <section class="result"><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note"></p></section>'
-            + '    <section class="history"><h3 style="margin:0">' + t('historyTitle') + '</h3><div id="history-area" style="margin-top:.65rem"></div></section>'
+            + '    <section class="history sticky-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" style="margin-top:.25rem"></div></section>'
             + '  </section>'
             + '  <section class="box">'
             + '    <h3 style="margin:0 0 .65rem">' + t('analyticsTitle') + '</h3>'
@@ -742,18 +859,17 @@
             + '      <div class="compare-box">'
             + '        <h4 style="margin:0 0 .5rem">' + t('scenarioA') + '</h4>'
             + '        <label>' + t('compareMode') + '<select id="cmp-a-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
-            + '        <label>' + t('formBill') + '<input id="cmp-a-bill" type="number" step="0.01" min="0" max="10000000" value="10000" /></label>'
             + '        <label>' + t('formVat') + '<input id="cmp-a-vat" type="number" step="0.01" min="0" max="100" value="15" /></label>'
             + '        <label>' + t('formTax') + '<input id="cmp-a-tax" type="number" step="0.01" min="0" max="100" value="5" /></label>'
             + '      </div>'
             + '      <div class="compare-box">'
             + '        <h4 style="margin:0 0 .5rem">' + t('scenarioB') + '</h4>'
             + '        <label>' + t('compareMode') + '<select id="cmp-b-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
-            + '        <label>' + t('formBill') + '<input id="cmp-b-bill" type="number" step="0.01" min="0" max="10000000" value="10000" /></label>'
             + '        <label>' + t('formVat') + '<input id="cmp-b-vat" type="number" step="0.01" min="0" max="100" value="10" /></label>'
             + '        <label>' + t('formTax') + '<input id="cmp-b-tax" type="number" step="0.01" min="0" max="100" value="3" /></label>'
             + '      </div>'
             + '    </div>'
+            + '    <p class="note">' + t('compareUsesShared') + '</p>'
             + '    <div style="margin-top:.6rem"><button id="run-compare" class="primary" type="button">' + t('compareRun') + '</button></div>'
             + '    <div id="compare-out" class="compare-summary" style="margin-top:.65rem"></div>'
             + '  </section>'
@@ -776,6 +892,7 @@
           }
 
           bindCardScroll();
+          bindSharedAmount();
           bindCategoryAutoFill();
           bindForm('gross-form', 'gross');
           bindForm('vendor-form', 'vendor');
