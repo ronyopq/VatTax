@@ -72,13 +72,22 @@ This project is configured for GitHub Pages at:
 - https://ronyopq.github.io/VatTax/
 
 What is already set:
-- Vite base path is set to `/VatTax/`
+- Vite base path is dynamic:
+  - GitHub Actions build => `/VatTax/`
+  - Other builds (local/Cloudflare) => `/`
 - GitHub Actions workflow is added in `.github/workflows/deploy-pages.yml`
 
 How to enable in repository settings:
 1. Go to GitHub repository `Settings` > `Pages`.
 2. Under `Build and deployment`, set `Source` to `GitHub Actions`.
 3. Push to `main` branch (or run the workflow manually from Actions tab).
+
+## Cloudflare Pages
+Use these settings:
+1. Framework preset: `Vite`
+2. Build command: `npm run build`
+3. Build output directory: `dist`
+4. Node version: `20` (recommended)
 
 ## Notes
 - PDF export and Excel export are not implemented yet (future scope).
