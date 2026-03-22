@@ -8,6 +8,10 @@
     <style>
       :root {
         --bg: #f6f8ef;
+        --bg-a: #e9f3d8;
+        --bg-b: #ffe9bf;
+        --bg-c: #f8f9f2;
+        --bg-d: #eef2e2;
         --ink: #1f2a1e;
         --muted: #5f6f62;
         --card: #ffffff;
@@ -21,9 +25,24 @@
         font-family: "Segoe UI", "Hind Siliguri", sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at 8% 12%, #e9f3d8 0%, transparent 42%),
-          radial-gradient(circle at 92% 18%, #ffe9bf 0%, transparent 36%),
-          linear-gradient(165deg, #f8f9f2 0%, #eef2e2 100%);
+          radial-gradient(circle at 8% 12%, var(--bg-a) 0%, transparent 42%),
+          radial-gradient(circle at 92% 18%, var(--bg-b) 0%, transparent 36%),
+          linear-gradient(165deg, var(--bg-c) 0%, var(--bg-d) 100%);
+      }
+      body[data-role-theme="finance"] {
+        --brand: #0b6a4e;
+        --bg-a: #e2f4df;
+        --bg-b: #fff1d1;
+      }
+      body[data-role-theme="procurement"] {
+        --brand: #1b5e8a;
+        --bg-a: #dfeffc;
+        --bg-b: #e9f8ff;
+      }
+      body[data-role-theme="vendor"] {
+        --brand: #8a4f1b;
+        --bg-a: #fff0dd;
+        --bg-b: #ffe3c7;
       }
       #app { width: min(1160px, 100% - 1rem); margin: 1rem auto 2rem; }
       .wrap { display: grid; gap: 1rem; }
@@ -80,6 +99,19 @@
       .print-banner { display: none; }
       .org-row { display: flex; gap: 0.5rem; align-items: end; flex-wrap: wrap; }
       .org-row label { min-width: 260px; margin: 0; }
+      .toggle-row { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.35rem; font-size: 0.9rem; color: #315145; }
+      .toggle-row input { width: 16px; height: 16px; }
+      .report-sign { display: grid; gap: 0.7rem; grid-template-columns: 1fr 1fr; margin-top: 0.8rem; }
+      .sign-box { border-top: 1px dashed #8ea59a; padding-top: 0.35rem; }
+      .sign-box h4 { margin: 0; font-size: 0.9rem; color: #2f5044; }
+      .sign-box p { margin: 0.2rem 0 0; color: #52655d; font-size: 0.85rem; }
+      .qr-wrap { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; margin-top: 0.7rem; }
+      .qr-wrap img { width: 132px; height: 132px; border: 1px solid #ccdacc; border-radius: 8px; background: #fff; }
+      .qr-wrap p { margin: 0; color: #42584e; font-size: 0.82rem; }
+      .print-template { display: none; }
+      .print-page-break { page-break-before: always; }
+      .history-snapshot table td,
+      .history-snapshot table th { font-size: 0.82rem; }
       .screen-only { display: block; }
       .fireworks-canvas {
         position: fixed;
@@ -115,11 +147,14 @@
       @media print {
         body { background: #fff; }
         #app { width: 100%; margin: 0; }
-        .screen-only, .hero, .cards, .grid, .history, .kpi-grid, .pro-tools, #compare-out, #category-list, .category-list, .fireworks-canvas, #pro-note, .note { display: none !important; }
+        .screen-only, .hero, .cards, .grid, .history, .kpi-grid, .pro-tools, #compare-out, #category-list, .category-list, .fireworks-canvas, #pro-note, .note, .compare-grid { display: none !important; }
         .print-banner { display: block; border: 1px solid #cad6c8; border-radius: 10px; padding: 0.7rem 0.8rem; margin-bottom: 0.6rem; }
         .print-banner h2 { margin: 0; font-size: 1.1rem; }
         .print-banner p { margin: 0.2rem 0 0; font-size: 0.86rem; color: #2d473d; }
         .box, .result { border-color: #d6ded4; box-shadow: none; }
+        .report-sign { grid-template-columns: 1fr 1fr; }
+        .print-template { display: block !important; }
+        .out-grid, .result { display: none !important; }
       }
     </style>
   </head>
@@ -135,12 +170,12 @@
         var HISTORY_KEY = 'bd_vat_tax_history_v2';
 
         var categories = [
-          { id: 'office-supplies', nameEn: 'Office Supplies', nameBn: 'অফিস সরঞ্জাম', vatRate: 15, taxRate: 3 },
-          { id: 'consultancy', nameEn: 'Consultancy Service', nameBn: 'পরামর্শ সেবা', vatRate: 15, taxRate: 10 },
-          { id: 'transport', nameEn: 'Transport & Logistics', nameBn: 'পরিবহন ও লজিস্টিক', vatRate: 5, taxRate: 3 },
-          { id: 'training', nameEn: 'Training & Workshop', nameBn: 'প্রশিক্ষণ ও কর্মশালা', vatRate: 10, taxRate: 5 },
-          { id: 'it-services', nameEn: 'IT Services', nameBn: 'আইটি সেবা', vatRate: 15, taxRate: 10 },
-          { id: 'maintenance', nameEn: 'Maintenance Work', nameBn: 'রক্ষণাবেক্ষণ কাজ', vatRate: 7.5, taxRate: 5 }
+          { id: 'office-supplies', nameEn: 'Office Supplies', nameBn: 'অফিস সরঞ্জাম', vatRate: 15, taxRate: 3, approved: true },
+          { id: 'consultancy', nameEn: 'Consultancy Service', nameBn: 'পরামর্শ সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'transport', nameEn: 'Transport & Logistics', nameBn: 'পরিবহন ও লজিস্টিক', vatRate: 5, taxRate: 3, approved: true },
+          { id: 'training', nameEn: 'Training & Workshop', nameBn: 'প্রশিক্ষণ ও কর্মশালা', vatRate: 10, taxRate: 5, approved: false },
+          { id: 'it-services', nameEn: 'IT Services', nameBn: 'আইটি সেবা', vatRate: 15, taxRate: 10, approved: true },
+          { id: 'maintenance', nameEn: 'Maintenance Work', nameBn: 'রক্ষণাবেক্ষণ কাজ', vatRate: 7.5, taxRate: 5, approved: false }
         ];
 
         var labels = {
@@ -160,6 +195,11 @@
             formBill: 'Bill Amount',
             sharedAmount: 'Bill Amount (Single Input)',
             sharedAmountHint: 'You can use English or Bengali numbers, e.g. 50000 or ৫০,০০০',
+            officialMode: 'Official Mode (Approved Categories Only)',
+            roleTheme: 'Role Theme',
+            roleFinance: 'Finance',
+            roleProcurement: 'Procurement',
+            roleVendor: 'Vendor',
             formVat: 'VAT Rate (%)',
             formTax: 'TAX Rate (%)',
             formCategory: 'Category',
@@ -174,6 +214,12 @@
             generatedAt: 'Generated At',
             organization: 'Organization',
             defaultOrg: 'Public Finance Team',
+            preparedBy: 'Prepared By',
+            checkedBy: 'Checked By',
+            signatureFooter: 'Signature Footer',
+            qrVerification: 'QR Verification',
+            resultHash: 'Result Hash',
+            snapshotTitle: 'History Snapshot',
             baseFormula: 'Base Formula',
             vatFormula: 'VAT Formula',
             taxFormula: 'TAX Formula',
@@ -231,6 +277,11 @@
             formBill: 'বিল এমাউন্ট',
             sharedAmount: 'বিল এমাউন্ট (একটিই ইনপুট)',
             sharedAmountHint: 'ইংরেজি বা বাংলা সংখ্যা দিন, যেমন 50000 বা ৫০,০০০',
+            officialMode: 'অফিসিয়াল মোড (শুধু অনুমোদিত ক্যাটাগরি)',
+            roleTheme: 'রোল থিম',
+            roleFinance: 'ফিন্যান্স',
+            roleProcurement: 'প্রোকিউরমেন্ট',
+            roleVendor: 'ভেন্ডর',
             formVat: 'VAT হার (%)',
             formTax: 'TAX হার (%)',
             formCategory: 'ক্যাটাগরি',
@@ -245,6 +296,12 @@
             generatedAt: 'রিপোর্ট সময়',
             organization: 'প্রতিষ্ঠান',
             defaultOrg: 'Public Finance Team',
+            preparedBy: 'Prepared By',
+            checkedBy: 'Checked By',
+            signatureFooter: 'সিগনেচার ফুটার',
+            qrVerification: 'QR ভেরিফিকেশন',
+            resultHash: 'রেজাল্ট হ্যাশ',
+            snapshotTitle: 'হিস্টোরি স্ন্যাপশট',
             baseFormula: 'বেইজ ফর্মুলা',
             vatFormula: 'VAT ফর্মুলা',
             taxFormula: 'TAX ফর্মুলা',
@@ -295,7 +352,12 @@
           compareResult: null,
           sharedBillText: '10000',
           orgName: 'Public Finance Team',
-          printTime: ''
+          printTime: '',
+          preparedBy: '',
+          checkedBy: '',
+          officialMode: false,
+          roleTheme: 'finance',
+          verification: null
         };
 
         function storageGet() {
@@ -322,6 +384,28 @@
         }
 
         function t(key) { return labels[state.lang][key]; }
+
+        function applyRoleTheme() {
+          document.body.setAttribute('data-role-theme', state.roleTheme);
+        }
+
+        function getVisibleCategories() {
+          if (!state.officialMode) return categories;
+          var approved = [];
+          for (var i = 0; i < categories.length; i++) {
+            if (categories[i].approved) approved.push(categories[i]);
+          }
+          return approved;
+        }
+
+        function hashString(input) {
+          var hash = 5381;
+          for (var i = 0; i < input.length; i++) {
+            hash = ((hash << 5) + hash) + input.charCodeAt(i);
+            hash = hash >>> 0;
+          }
+          return hash.toString(16).toUpperCase();
+        }
 
         function money(value) {
           var locale = state.lang === 'bn' ? 'bn-BD' : 'en-BD';
@@ -383,14 +467,56 @@
           return mode === 'vendor' ? calcVendor(bill, vatRate, taxRate) : calcGross(bill, vatRate, taxRate);
         }
 
+        function getVerificationPayload() {
+          if (!state.result) return '';
+          var payload = {
+            time: state.result.createdAt,
+            mode: state.result.mode,
+            bill: state.result.input.bill,
+            vatRate: state.result.input.vatRate,
+            taxRate: state.result.input.taxRate,
+            total: Number(state.result.output.total.toFixed(2)),
+            actualPay: Number(state.result.output.actualPay.toFixed(2))
+          };
+          return JSON.stringify(payload);
+        }
+
+        function getQrUrl(payload) {
+          return 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(payload);
+        }
+
         function getCategoryTableHtml() {
           var rows = '';
-          for (var i = 0; i < categories.length; i++) {
-            var c = categories[i];
+          var activeCategories = getVisibleCategories();
+          for (var i = 0; i < activeCategories.length; i++) {
+            var c = activeCategories[i];
             var name = state.lang === 'bn' ? c.nameBn : c.nameEn;
             rows += '<tr><td>' + name + '</td><td>' + c.vatRate + '%</td><td>' + c.taxRate + '%</td></tr>';
           }
           return '<table><thead><tr><th>' + t('formCategory') + '</th><th>' + t('formVat') + '</th><th>' + t('formTax') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+        }
+
+        function getHistorySnapshotHtml() {
+          if (!state.history.length) return '<p class="empty">' + t('historyEmpty') + '</p>';
+          var rows = '';
+          var limit = Math.min(10, state.history.length);
+          for (var i = 0; i < limit; i++) {
+            var h = state.history[i];
+            rows += '<tr>'
+              + '<td>' + new Date(h.createdAt).toLocaleString() + '</td>'
+              + '<td>' + modeLabel(h.mode) + '</td>'
+              + '<td>' + money(h.input.bill) + '</td>'
+              + '<td>' + money(h.output.total) + '</td>'
+              + '</tr>';
+          }
+          return '<table><thead><tr><th>Date</th><th>' + t('resultMode') + '</th><th>' + t('formBill') + '</th><th>' + t('resultTotal') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+        }
+
+        function getSignatureHtml() {
+          return '<div class="report-sign">'
+            + '<div class="sign-box"><h4>' + t('preparedBy') + '</h4><p>' + (state.preparedBy || '-') + '</p></div>'
+            + '<div class="sign-box"><h4>' + t('checkedBy') + '</h4><p>' + (state.checkedBy || '-') + '</p></div>'
+            + '</div>';
         }
 
         function getHistoryHtml() {
@@ -476,10 +602,16 @@
 
         function getPrintBannerHtml() {
           var timeText = state.printTime || new Date().toLocaleString();
+          var resultHash = state.verification ? state.verification.hash : '-';
+          var qrUrl = state.verification ? state.verification.qrUrl : '';
           return '<div class="print-banner">'
             + '<h2>' + t('reportTitle') + '</h2>'
             + '<p>' + t('organization') + ': ' + state.orgName + '</p>'
             + '<p>' + t('generatedAt') + ': ' + timeText + '</p>'
+            + '<div class="qr-wrap">'
+            +   (qrUrl ? '<img alt="QR verification" src="' + qrUrl + '" />' : '')
+            +   '<p><strong>' + t('qrVerification') + '</strong><br/>' + t('resultHash') + ': ' + resultHash + '</p>'
+            + '</div>'
             + '</div>';
         }
 
@@ -490,19 +622,27 @@
 
         function refreshPanels() {
           var result = document.getElementById('result-table');
+          var resultPrint = document.getElementById('result-table-print');
           var hist = document.getElementById('history-area');
           var list = document.getElementById('category-list');
           var kpi = document.getElementById('kpi-area');
           var compare = document.getElementById('compare-out');
           var audit = document.getElementById('audit-area');
+          var auditPrint = document.getElementById('audit-area-print');
           var printBanner = document.getElementById('print-banner-area');
+          var historySnapshot = document.getElementById('history-snapshot-area');
+          var signArea = document.getElementById('signature-area');
           if (result) result.innerHTML = getResultHtml();
+          if (resultPrint) resultPrint.innerHTML = getResultHtml();
           if (hist) hist.innerHTML = getHistoryHtml();
           if (list) list.innerHTML = getCategoryTableHtml();
           if (kpi) kpi.innerHTML = getKpiHtml();
           if (compare) compare.innerHTML = getCompareHtml();
           if (audit) audit.innerHTML = getAuditHtml();
+          if (auditPrint) auditPrint.innerHTML = getAuditHtml();
           if (printBanner) printBanner.innerHTML = getPrintBannerHtml();
+          if (historySnapshot) historySnapshot.innerHTML = getHistorySnapshotHtml();
+          if (signArea) signArea.innerHTML = getSignatureHtml();
         }
 
         function updateShareLinkText(msg) {
@@ -539,9 +679,10 @@
 
             if (mode === 'category') {
               var selected = null;
-              for (var i = 0; i < categories.length; i++) {
-                if (categories[i].id === categoryId) {
-                  selected = categories[i];
+              var activeCategories = getVisibleCategories();
+              for (var i = 0; i < activeCategories.length; i++) {
+                if (activeCategories[i].id === categoryId) {
+                  selected = activeCategories[i];
                   break;
                 }
               }
@@ -571,6 +712,13 @@
               input: { bill: bill, vatRate: vatRate, taxRate: taxRate },
               output: output,
               createdAt: new Date().toISOString()
+            };
+
+            var payload = getVerificationPayload();
+            state.verification = {
+              hash: hashString(payload),
+              payload: payload,
+              qrUrl: getQrUrl(payload)
             };
 
             state.history = [state.result].concat(state.history).slice(0, 12);
@@ -614,9 +762,10 @@
           sel.addEventListener('change', function () {
             var value = sel.value;
             var selected = null;
-            for (var i = 0; i < categories.length; i++) {
-              if (categories[i].id === value) {
-                selected = categories[i];
+            var activeCategories = getVisibleCategories();
+            for (var i = 0; i < activeCategories.length; i++) {
+              if (activeCategories[i].id === value) {
+                selected = activeCategories[i];
                 break;
               }
             }
@@ -778,6 +927,46 @@
           input.value = state.orgName;
           input.addEventListener('input', function () {
             state.orgName = input.value || t('defaultOrg');
+            refreshPanels();
+          });
+        }
+
+        function bindSignatureFields() {
+          var prepared = document.getElementById('prepared-by');
+          var checked = document.getElementById('checked-by');
+          if (prepared) {
+            prepared.value = state.preparedBy;
+            prepared.addEventListener('input', function () {
+              state.preparedBy = prepared.value;
+              refreshPanels();
+            });
+          }
+          if (checked) {
+            checked.value = state.checkedBy;
+            checked.addEventListener('input', function () {
+              state.checkedBy = checked.value;
+              refreshPanels();
+            });
+          }
+        }
+
+        function bindOfficialMode() {
+          var toggle = document.getElementById('official-mode-toggle');
+          if (!toggle) return;
+          toggle.checked = state.officialMode;
+          toggle.addEventListener('change', function () {
+            state.officialMode = !!toggle.checked;
+            render();
+          });
+        }
+
+        function bindRoleTheme() {
+          var roleSel = document.getElementById('role-theme');
+          if (!roleSel) return;
+          roleSel.value = state.roleTheme;
+          roleSel.addEventListener('change', function () {
+            state.roleTheme = roleSel.value;
+            applyRoleTheme();
           });
         }
 
@@ -876,8 +1065,9 @@
 
         function appHtml() {
           var options = '<option value="">' + t('selectCategory') + '</option>';
-          for (var i = 0; i < categories.length; i++) {
-            var c = categories[i];
+          var activeCategories = getVisibleCategories();
+          for (var i = 0; i < activeCategories.length; i++) {
+            var c = activeCategories[i];
             options += '<option value="' + c.id + '">' + (state.lang === 'bn' ? c.nameBn : c.nameEn) + '</option>';
           }
 
@@ -891,11 +1081,15 @@
             + '    <div class="amount-wrap">'
             + '      <label>' + t('sharedAmount') + '<input id="shared-bill" type="text" inputmode="decimal" placeholder="10000 / ১০,০০০" /></label>'
             + '      <p>' + t('sharedAmountHint') + '</p>'
+            + '      <div class="toggle-row"><input id="official-mode-toggle" type="checkbox" /><span>' + t('officialMode') + '</span></div>'
             + '    </div>'
             + '  </section>'
             + '  <section class="box screen-only">'
             + '    <div class="org-row">'
             + '      <label>' + t('organization') + '<input id="org-name" type="text" /></label>'
+            + '      <label>' + t('roleTheme') + '<select id="role-theme"><option value="finance">' + t('roleFinance') + '</option><option value="procurement">' + t('roleProcurement') + '</option><option value="vendor">' + t('roleVendor') + '</option></select></label>'
+            + '      <label>' + t('preparedBy') + '<input id="prepared-by" type="text" /></label>'
+            + '      <label>' + t('checkedBy') + '<input id="checked-by" type="text" /></label>'
             + '    </div>'
             + '  </section>'
             + '  <section class="box">'
@@ -971,6 +1165,19 @@
             + '    <h3 style="margin:0 0 .65rem">' + t('formulaAuditTitle') + '</h3>'
             + '    <div id="audit-area"></div>'
             + '  </section>'
+            + '  <section class="box print-template">'
+            + '    <h3 style="margin:0 0 .65rem">' + t('resultTitle') + '</h3>'
+            + '    <div id="result-table-print"></div>'
+            + '    <div id="signature-area"></div>'
+            + '  </section>'
+            + '  <section class="box print-template print-page-break">'
+            + '    <h3 style="margin:0 0 .65rem">' + t('formulaAuditTitle') + '</h3>'
+            + '    <div id="audit-area-print"></div>'
+            + '  </section>'
+            + '  <section class="box print-template print-page-break history-snapshot">'
+            + '    <h3 style="margin:0 0 .65rem">' + t('snapshotTitle') + '</h3>'
+            + '    <div id="history-snapshot-area"></div>'
+            + '  </section>'
             + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div></section>'
             + '  <footer>' + t('footerText') + '</footer>'
             + '</main>';
@@ -992,6 +1199,9 @@
           bindCardScroll();
           bindSharedAmount();
           bindOrgName();
+          bindSignatureFields();
+          bindOfficialMode();
+          bindRoleTheme();
           bindCategoryAutoFill();
           bindForm('gross-form', 'gross');
           bindForm('vendor-form', 'vendor');
@@ -1001,6 +1211,7 @@
           bindProButtons();
           bindCompareEngine();
           prefillFromQuery();
+          applyRoleTheme();
           refreshPanels();
         }
 
