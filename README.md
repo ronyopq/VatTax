@@ -72,9 +72,9 @@ This project is configured for GitHub Pages at:
 - https://ronyopq.github.io/VatTax/
 
 What is already set:
-- Vite base path is dynamic:
-  - GitHub Actions build => `/VatTax/`
-  - Other builds (local/Cloudflare) => `/`
+- Vite base path is relative (`./`) so the same build works on both:
+  - GitHub Pages subpath deployment
+  - Cloudflare Pages root deployment
 - GitHub Actions workflow is added in `.github/workflows/deploy-pages.yml`
 
 How to enable in repository settings:
