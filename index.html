@@ -244,6 +244,102 @@
       .history-snapshot table td,
       .history-snapshot table th { font-size: 0.82rem; }
       .screen-only { display: block; }
+      .easy-shell {
+        display: grid;
+        gap: 0.9rem;
+      }
+      .easy-header {
+        background: linear-gradient(145deg, #ffffff 0%, #eef9ee 100%);
+      }
+      .easy-title {
+        margin: 0;
+        font-size: clamp(1.2rem, 2.5vw, 1.9rem);
+        color: #164e3a;
+      }
+      .easy-sub {
+        margin: 0.4rem 0 0;
+        color: #4e665a;
+      }
+      .easy-steps {
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .easy-step {
+        border: 1px solid #d6e3d4;
+        border-radius: 11px;
+        background: #f8fdf6;
+        padding: 0.7rem;
+      }
+      .easy-step h4 {
+        margin: 0;
+        color: #1b503d;
+        font-size: 0.95rem;
+      }
+      .easy-step p {
+        margin: 0.26rem 0 0;
+        color: #4f665a;
+        font-size: 0.84rem;
+      }
+      .easy-main-grid {
+        display: grid;
+        gap: 0.8rem;
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .easy-card {
+        border: 1px solid #d4e0d2;
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.85rem;
+      }
+      .easy-card h3 {
+        margin: 0;
+        color: #174f3c;
+        font-size: 1rem;
+      }
+      .easy-note {
+        margin: 0.3rem 0 0.65rem;
+        color: #53695f;
+        font-size: 0.83rem;
+      }
+      .easy-form {
+        display: grid;
+        gap: 0.55rem;
+      }
+      .easy-form input,
+      .easy-form select {
+        min-height: 44px;
+        font-size: 1rem;
+      }
+      .easy-form .actions button {
+        min-height: 44px;
+        font-size: 0.98rem;
+      }
+      .easy-controls {
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+      .easy-advanced {
+        border: 1px solid #d3ded1;
+        border-radius: 10px;
+        background: #fbfef8;
+        padding: 0.7rem;
+      }
+      .easy-advanced summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: #1f4f3d;
+      }
+      .easy-history {
+        position: sticky;
+        top: 0.7rem;
+        align-self: start;
+      }
+      .result-hero {
+        display: grid;
+        gap: 0.7rem;
+      }
 
       .reveal-up { animation: revealUp 0.65s ease both; }
       .fireworks-canvas {
@@ -276,6 +372,9 @@
         .actions { flex-direction: column; }
         .head { flex-direction: column; align-items: stretch; }
         .kpi-grid, .compare-grid { grid-template-columns: 1fr; }
+        .easy-steps,
+        .easy-main-grid,
+        .easy-controls { grid-template-columns: 1fr; }
       }
 
       @keyframes drift {
@@ -1290,86 +1389,68 @@
             options += '<option value="' + c.id + '">' + (state.lang === 'bn' ? c.nameBn : c.nameEn) + '</option>';
           }
 
+          var step1 = state.lang === 'bn' ? 'ধাপ ১: বিল এমাউন্ট লিখুন' : 'Step 1: Enter Bill Amount';
+          var step1d = state.lang === 'bn' ? 'বাংলা/ইংরেজি সংখ্যা চলবে' : 'Bangla/English numbers both supported';
+          var step2 = state.lang === 'bn' ? 'ধাপ ২: ক্যালকুলেটর নির্বাচন করুন' : 'Step 2: Choose calculator';
+          var step2d = state.lang === 'bn' ? 'গ্রস/ভেন্ডর/ক্যাটাগরি থেকে একটি' : 'Pick Gross/Vendor/Category';
+          var step3 = state.lang === 'bn' ? 'ধাপ ৩: হিসাব করুন' : 'Step 3: Click Calculate';
+          var step3d = state.lang === 'bn' ? 'ফলাফল ও হিস্টরি সাথে সাথে দেখুন' : 'See result and history instantly';
+          var advancedTitle = state.lang === 'bn' ? 'Advanced Tools (ঐচ্ছিক)' : 'Advanced Tools (Optional)';
+
           return ''
-            + '<main class="wrap">'
-            + '  <header class="hero">'
-            + '    <div><h1>' + t('appTitle') + '</h1><p>' + t('appSubtitle') + '</p></div>'
-            + '    <button id="lang-toggle" class="primary">' + t('languageToggle') + '</button>'
-            + '  </header>'
-            + '  <section class="box front-stage screen-only reveal-up">'
-            + '    <div class="front-inner">'
-            + '      <div class="front-copy">'
-            + '        <h2>' + t('frontTitle') + '</h2>'
-            + '        <p>' + t('frontSubtitle') + '</p>'
-            + '        <div class="front-tags">'
-            + '          <span class="front-tag">' + t('tagOne') + '</span>'
-            + '          <span class="front-tag">' + t('tagTwo') + '</span>'
-            + '          <span class="front-tag">' + t('tagThree') + '</span>'
-            + '          <span class="front-tag">' + t('tagFour') + '</span>'
-            + '        </div>'
-            + '      </div>'
-            + '      <div class="front-grid">'
-            + '        <div class="icon-cloud">'
-            + '          <span class="icon-bubble">VAT</span>'
-            + '          <span class="icon-bubble">TAX</span>'
-            + '          <span class="icon-bubble">PDF</span>'
-            + '          <span class="icon-bubble">QR</span>'
-            + '          <span class="icon-bubble">SRO</span>'
-            + '          <span class="icon-bubble">NBR</span>'
-            + '        </div>'
-            + '        <div class="live-board">'
-            + '          <div class="live-head"><h4>' + t('liveNow') + '</h4><span class="live-dot"></span></div>'
-            + '          <div class="live-rows">'
-            + '            <div class="live-row"><span>' + t('liveTime') + '</span><strong id="live-time-value">--:--:--</strong></div>'
-            + '            <div class="live-row"><span>' + t('liveCount') + '</span><strong id="live-count-value">0</strong></div>'
-            + '            <div class="live-row"><span>' + t('liveMode') + '</span><strong id="live-mode-value">-</strong></div>'
-            + '          </div>'
-            + '        </div>'
-            + '      </div>'
+            + '<main class="easy-shell">'
+            + '  <header class="box easy-header">'
+            + '    <div style="display:flex;justify-content:space-between;gap:.8rem;align-items:flex-start;flex-wrap:wrap">'
+            + '      <div><h1 class="easy-title">' + t('appTitle') + '</h1><p class="easy-sub">' + t('appSubtitle') + '</p></div>'
+            + '      <button id="lang-toggle" class="primary">' + t('languageToggle') + '</button>'
             + '    </div>'
+            + '  </header>'
+
+            + '  <section class="easy-steps screen-only">'
+            + '    <article class="easy-step"><h4>' + step1 + '</h4><p>' + step1d + '</p></article>'
+            + '    <article class="easy-step"><h4>' + step2 + '</h4><p>' + step2d + '</p></article>'
+            + '    <article class="easy-step"><h4>' + step3 + '</h4><p>' + step3d + '</p></article>'
             + '  </section>'
-            + '  <section class="box">'
+
+            + '  <section class="easy-controls">'
+            + '    <section class="box">'
             + '    <div class="amount-wrap">'
             + '      <label>' + t('sharedAmount') + '<input id="shared-bill" type="text" inputmode="decimal" placeholder="10000 / ১০,০০০" /></label>'
             + '      <p>' + t('sharedAmountHint') + '</p>'
             + '      <div class="toggle-row"><input id="official-mode-toggle" type="checkbox" /><span>' + t('officialMode') + '</span></div>'
             + '    </div>'
-            + '  </section>'
-            + '  <section class="box screen-only">'
+            + '    </section>'
+            + '    <section class="box screen-only">'
             + '    <div class="org-row">'
-            + '      <label>' + t('organization') + '<input id="org-name" type="text" /></label>'
             + '      <label>' + t('roleTheme') + '<select id="role-theme"><option value="finance">' + t('roleFinance') + '</option><option value="procurement">' + t('roleProcurement') + '</option><option value="vendor">' + t('roleVendor') + '</option></select></label>'
+            + '      <label>' + t('organization') + '<input id="org-name" type="text" /></label>'
             + '      <label>' + t('preparedBy') + '<input id="prepared-by" type="text" /></label>'
             + '      <label>' + t('checkedBy') + '<input id="checked-by" type="text" /></label>'
             + '    </div>'
+            + '    </section>'
             + '  </section>'
-            + '  <section class="box">'
-            + '    <h2 style="margin:0">' + t('homeTitle') + '</h2>'
-            + '    <div class="cards" style="margin-top:.7rem">'
-            + '      <button class="card" data-target="gross-section"><strong>' + t('homeGross') + '</strong><span>' + t('homeGrossInfo') + '</span></button>'
-            + '      <button class="card" data-target="vendor-section"><strong>' + t('homeVendor') + '</strong><span>' + t('homeVendorInfo') + '</span></button>'
-            + '      <button class="card" data-target="category-section"><strong>' + t('homeCategory') + '</strong><span>' + t('homeCategoryInfo') + '</span></button>'
-            + '    </div>'
-            + '  </section>'
-            + '  <section class="grid">'
-            + '    <article class="box" id="gross-section"><h3 style="margin:0">' + t('grossTitle') + '</h3>'
-            + '      <form id="gross-form">'
+
+            + '  <section class="easy-main-grid">'
+            + '    <article class="easy-card" id="gross-section"><h3>' + t('homeGross') + '</h3><p class="easy-note">' + t('homeGrossInfo') + '</p>'
+            + '      <form id="gross-form" class="easy-form">'
             + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
             + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
             + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="gross-form">' + t('clear') + '</button></div>'
             + '        <p class="error" data-error-for="gross-form"></p>'
             + '      </form>'
             + '    </article>'
-            + '    <article class="box" id="vendor-section"><h3 style="margin:0">' + t('vendorTitle') + '</h3>'
-            + '      <form id="vendor-form">'
+
+            + '    <article class="easy-card" id="vendor-section"><h3>' + t('homeVendor') + '</h3><p class="easy-note">' + t('homeVendorInfo') + '</p>'
+            + '      <form id="vendor-form" class="easy-form">'
             + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
             + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
             + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="vendor-form">' + t('clear') + '</button></div>'
             + '        <p class="error" data-error-for="vendor-form"></p>'
             + '      </form>'
             + '    </article>'
-            + '    <article class="box" id="category-section"><h3 style="margin:0">' + t('categoryTitle') + '</h3>'
-            + '      <form id="category-form">'
+
+            + '    <article class="easy-card" id="category-section"><h3>' + t('homeCategory') + '</h3><p class="easy-note">' + t('homeCategoryInfo') + '</p>'
+            + '      <form id="category-form" class="easy-form">'
             + '        <label>' + t('formCategory') + '<select id="category-select" name="category" required>' + options + '</select></label>'
             + '        <label>' + t('formVat') + '<input id="category-vat" type="number" name="vatRate" readonly required></label>'
             + '        <label>' + t('formTax') + '<input id="category-tax" type="number" name="taxRate" readonly required></label>'
@@ -1378,44 +1459,54 @@
             + '      </form>'
             + '    </article>'
             + '  </section>'
+
             + '  <section class="out-grid">'
-            + '    <section class="history sticky-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" style="margin-top:.25rem"></div></section>'
-            + '    <section class="result"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
+            + '    <section class="history easy-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" style="margin-top:.25rem"></div></section>'
+            + '    <section class="result result-hero"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
             + '  </section>'
-            + '  <section class="box">'
-            + '    <h3 style="margin:0 0 .65rem">' + t('analyticsTitle') + '</h3>'
-            + '    <div id="kpi-area"></div>'
-            + '    <div class="pro-tools" style="margin-top:.75rem">'
-            + '      <button id="export-csv" class="ghost" type="button">' + t('exportCsv') + '</button>'
-            + '      <button id="print-report" class="ghost" type="button">' + t('printReport') + '</button>'
-            + '      <button id="clear-history" class="ghost" type="button">' + t('clearHistory') + '</button>'
-            + '    </div>'
-            + '    <p id="pro-note" class="note"></p>'
-            + '  </section>'
-            + '  <section class="box">'
-            + '    <h3 style="margin:0 0 .65rem">' + t('compareTitle') + '</h3>'
-            + '    <div class="compare-grid">'
-            + '      <div class="compare-box">'
-            + '        <h4 style="margin:0 0 .5rem">' + t('scenarioA') + '</h4>'
-            + '        <label>' + t('compareMode') + '<select id="cmp-a-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
-            + '        <label>' + t('formVat') + '<input id="cmp-a-vat" type="number" step="0.01" min="0" max="100" value="15" /></label>'
-            + '        <label>' + t('formTax') + '<input id="cmp-a-tax" type="number" step="0.01" min="0" max="100" value="5" /></label>'
+
+            + '  <details class="easy-advanced screen-only">'
+            + '    <summary>' + advancedTitle + '</summary>'
+            + '    <section class="box" style="margin-top:.7rem">'
+            + '      <h3 style="margin:0 0 .65rem">' + t('analyticsTitle') + '</h3>'
+            + '      <div id="kpi-area"></div>'
+            + '      <div class="pro-tools" style="margin-top:.75rem">'
+            + '        <button id="export-csv" class="ghost" type="button">' + t('exportCsv') + '</button>'
+            + '        <button id="print-report" class="ghost" type="button">' + t('printReport') + '</button>'
+            + '        <button id="clear-history" class="ghost" type="button">' + t('clearHistory') + '</button>'
             + '      </div>'
-            + '      <div class="compare-box">'
-            + '        <h4 style="margin:0 0 .5rem">' + t('scenarioB') + '</h4>'
-            + '        <label>' + t('compareMode') + '<select id="cmp-b-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
-            + '        <label>' + t('formVat') + '<input id="cmp-b-vat" type="number" step="0.01" min="0" max="100" value="10" /></label>'
-            + '        <label>' + t('formTax') + '<input id="cmp-b-tax" type="number" step="0.01" min="0" max="100" value="3" /></label>'
+            + '      <p id="pro-note" class="note"></p>'
+            + '    </section>'
+
+            + '    <section class="box" style="margin-top:.7rem">'
+            + '      <h3 style="margin:0 0 .65rem">' + t('compareTitle') + '</h3>'
+            + '      <div class="compare-grid">'
+            + '        <div class="compare-box">'
+            + '          <h4 style="margin:0 0 .5rem">' + t('scenarioA') + '</h4>'
+            + '          <label>' + t('compareMode') + '<select id="cmp-a-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
+            + '          <label>' + t('formVat') + '<input id="cmp-a-vat" type="number" step="0.01" min="0" max="100" value="15" /></label>'
+            + '          <label>' + t('formTax') + '<input id="cmp-a-tax" type="number" step="0.01" min="0" max="100" value="5" /></label>'
+            + '        </div>'
+            + '        <div class="compare-box">'
+            + '          <h4 style="margin:0 0 .5rem">' + t('scenarioB') + '</h4>'
+            + '          <label>' + t('compareMode') + '<select id="cmp-b-mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option></select></label>'
+            + '          <label>' + t('formVat') + '<input id="cmp-b-vat" type="number" step="0.01" min="0" max="100" value="10" /></label>'
+            + '          <label>' + t('formTax') + '<input id="cmp-b-tax" type="number" step="0.01" min="0" max="100" value="3" /></label>'
+            + '        </div>'
             + '      </div>'
-            + '    </div>'
-            + '    <p class="note">' + t('compareUsesShared') + '</p>'
-            + '    <div style="margin-top:.6rem"><button id="run-compare" class="primary" type="button">' + t('compareRun') + '</button></div>'
-            + '    <div id="compare-out" class="compare-summary" style="margin-top:.65rem"></div>'
-            + '  </section>'
-            + '  <section class="box">'
-            + '    <h3 style="margin:0 0 .65rem">' + t('formulaAuditTitle') + '</h3>'
-            + '    <div id="audit-area"></div>'
-            + '  </section>'
+            + '      <p class="note">' + t('compareUsesShared') + '</p>'
+            + '      <div style="margin-top:.6rem"><button id="run-compare" class="primary" type="button">' + t('compareRun') + '</button></div>'
+            + '      <div id="compare-out" class="compare-summary" style="margin-top:.65rem"></div>'
+            + '    </section>'
+
+            + '    <section class="box" style="margin-top:.7rem">'
+            + '      <h3 style="margin:0 0 .65rem">' + t('formulaAuditTitle') + '</h3>'
+            + '      <div id="audit-area"></div>'
+            + '    </section>'
+
+            + '    <section class="category-list" style="margin-top:.7rem"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div><p class="note">' + t('categoryRateNote') + '</p></section>'
+            + '  </details>'
+
             + '  <section class="box print-template">'
             + '    <h3 style="margin:0 0 .65rem">' + t('resultTitle') + '</h3>'
             + '    <div id="result-table-print"></div>'
@@ -1429,7 +1520,6 @@
             + '    <h3 style="margin:0 0 .65rem">' + t('snapshotTitle') + '</h3>'
             + '    <div id="history-snapshot-area"></div>'
             + '  </section>'
-            + '  <section class="category-list"><h3 style="margin:0 0 .65rem">' + t('categoryTableTitle') + '</h3><div id="category-list"></div><p class="note">' + t('categoryRateNote') + '</p></section>'
             + '  <footer>' + t('footerText') + '</footer>'
             + '</main>';
         }
