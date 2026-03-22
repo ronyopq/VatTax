@@ -67,6 +67,19 @@ Can be deployed on:
 - Azure Static Web Apps
 - Any static hosting
 
+## GitHub Pages (Configured)
+This project is configured for GitHub Pages at:
+- https://ronyopq.github.io/VatTax/
+
+What is already set:
+- Vite base path is set to `/VatTax/`
+- GitHub Actions workflow is added in `.github/workflows/deploy-pages.yml`
+
+How to enable in repository settings:
+1. Go to GitHub repository `Settings` > `Pages`.
+2. Under `Build and deployment`, set `Source` to `GitHub Actions`.
+3. Push to `main` branch (or run the workflow manually from Actions tab).
+
 ## Notes
 - PDF export and Excel export are not implemented yet (future scope).
 - No sensitive data is stored.
