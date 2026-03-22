@@ -55,6 +55,137 @@
       .hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
       .hero h1 { margin: 0; font-size: clamp(1.25rem, 2.8vw, 2rem); }
       .hero p { margin: 0.45rem 0 0; color: var(--muted); }
+      .front-stage {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(235, 247, 238, 0.95) 55%, rgba(255, 242, 219, 0.92) 100%);
+      }
+      .front-stage::before,
+      .front-stage::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(6px);
+        z-index: 0;
+      }
+      .front-stage::before {
+        width: 220px;
+        height: 220px;
+        right: -60px;
+        top: -60px;
+        background: rgba(40, 170, 120, 0.2);
+        animation: floatBlob 9s ease-in-out infinite;
+      }
+      .front-stage::after {
+        width: 180px;
+        height: 180px;
+        left: -50px;
+        bottom: -70px;
+        background: rgba(243, 158, 42, 0.22);
+        animation: floatBlob 10s ease-in-out infinite reverse;
+      }
+      .front-inner {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 1rem;
+        align-items: center;
+      }
+      .front-copy h2 {
+        margin: 0;
+        font-size: clamp(1.15rem, 2.4vw, 1.8rem);
+        color: #174f3c;
+      }
+      .front-copy p {
+        margin: 0.45rem 0 0;
+        color: #4f665a;
+      }
+      .front-tags {
+        margin-top: 0.8rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+      .front-tag {
+        padding: 0.35rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid #d3dfd1;
+        background: #f8fff5;
+        color: #265747;
+        font-size: 0.78rem;
+        animation: tagPulse 2.4s ease-in-out infinite;
+      }
+      .front-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .icon-cloud {
+        min-height: 152px;
+        border: 1px solid #d7e2d4;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.75);
+        position: relative;
+        overflow: hidden;
+      }
+      .icon-bubble {
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        font-size: 0.76rem;
+        font-weight: 800;
+        color: #1e5240;
+        border: 1px solid #cce0d3;
+        background: linear-gradient(145deg, #ffffff 0%, #eaf6ec 100%);
+        box-shadow: 0 8px 18px rgba(17, 80, 58, 0.12);
+      }
+      .icon-bubble:nth-child(1) { top: 14px; left: 14px; animation: drift 5.5s ease-in-out infinite; }
+      .icon-bubble:nth-child(2) { top: 20px; right: 22px; animation: drift 6.2s ease-in-out infinite 0.3s; }
+      .icon-bubble:nth-child(3) { top: 72px; left: 96px; animation: drift 6.8s ease-in-out infinite 0.5s; }
+      .icon-bubble:nth-child(4) { bottom: 14px; left: 24px; animation: drift 5.9s ease-in-out infinite 0.2s; }
+      .icon-bubble:nth-child(5) { bottom: 18px; right: 90px; animation: drift 6.1s ease-in-out infinite 0.6s; }
+      .icon-bubble:nth-child(6) { bottom: 24px; right: 18px; animation: drift 7s ease-in-out infinite 0.1s; }
+      .live-board {
+        border: 1px solid #d4e0d2;
+        border-radius: 12px;
+        background: #f8fcf5;
+        padding: 0.72rem;
+      }
+      .live-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .live-head h4 {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #1f4f3e;
+      }
+      .live-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #20b26f;
+        box-shadow: 0 0 0 0 rgba(32, 178, 111, 0.55);
+        animation: livePulse 1.5s infinite;
+      }
+      .live-rows {
+        margin-top: 0.55rem;
+        display: grid;
+        gap: 0.32rem;
+      }
+      .live-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.83rem;
+        color: #2d5042;
+      }
+      .live-row strong { color: #174a38; }
       .amount-wrap { display: grid; gap: 0.35rem; }
       .amount-wrap p { margin: 0; color: #4f665a; font-size: 0.85rem; }
       button { border: 0; border-radius: 9px; padding: 0.62rem 0.9rem; font-weight: 700; cursor: pointer; }
@@ -72,7 +203,7 @@
       .actions { display: flex; gap: 0.5rem; }
       .actions button { flex: 1; }
       .error { margin: 0; color: var(--danger); min-height: 1rem; font-size: 0.82rem; }
-      .out-grid { display: grid; gap: 0.8rem; grid-template-columns: 1.2fr 0.8fr; }
+      .out-grid { display: grid; gap: 0.8rem; grid-template-columns: 0.8fr 1.2fr; }
       .sticky-history { position: sticky; top: 0.8rem; align-self: start; }
       .head { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; margin-bottom: 0.7rem; }
       table { width: 100%; border-collapse: collapse; }
@@ -113,6 +244,8 @@
       .history-snapshot table td,
       .history-snapshot table th { font-size: 0.82rem; }
       .screen-only { display: block; }
+
+      .reveal-up { animation: revealUp 0.65s ease both; }
       .fireworks-canvas {
         position: fixed;
         inset: 0;
@@ -138,10 +271,33 @@
       }
       @media (max-width: 720px) {
         .hero { flex-direction: column; }
+        .front-inner { grid-template-columns: 1fr; }
         .cards, .grid { grid-template-columns: 1fr; }
         .actions { flex-direction: column; }
         .head { flex-direction: column; align-items: stretch; }
         .kpi-grid, .compare-grid { grid-template-columns: 1fr; }
+      }
+
+      @keyframes drift {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-9px) rotate(2deg); }
+      }
+      @keyframes floatBlob {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(-10px, 8px); }
+      }
+      @keyframes livePulse {
+        0% { box-shadow: 0 0 0 0 rgba(32, 178, 111, 0.55); }
+        70% { box-shadow: 0 0 0 12px rgba(32, 178, 111, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(32, 178, 111, 0); }
+      }
+      @keyframes revealUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes tagPulse {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-2px); }
       }
 
       @media print {
@@ -203,6 +359,16 @@
             homeGrossInfo: 'Base amount + VAT + TAX',
             homeVendorInfo: 'Bill includes VAT/TAX, find actual pay',
             homeCategoryInfo: 'Auto-fill VAT/TAX from category',
+            frontTitle: 'Smart VAT/TAX Calculation Console',
+            frontSubtitle: 'Live insights, role-based view, official mode, and printable compliance report in one page.',
+            liveNow: 'Live System',
+            liveTime: 'Server Time',
+            liveCount: 'Total Calculations',
+            liveMode: 'Current Theme',
+            tagOne: 'Auto VAT/TAX',
+            tagTwo: 'Official Mode',
+            tagThree: 'Audit Trail',
+            tagFour: 'QR Verified',
             grossTitle: 'Gross Up VAT & TAX Calculator',
             vendorTitle: 'Procurement / Vendor Calculator',
             categoryTitle: 'Category-Based Calculator',
@@ -286,6 +452,16 @@
             homeGrossInfo: 'বেইজ এমাউন্ট + VAT + TAX',
             homeVendorInfo: 'বিলে VAT/TAX আছে, Actual Pay বের করুন',
             homeCategoryInfo: 'ক্যাটাগরি থেকে VAT/TAX অটো ফিল',
+            frontTitle: 'স্মার্ট VAT/TAX ক্যালকুলেশন কনসোল',
+            frontSubtitle: 'লাইভ ইনসাইট, রোল-ভিত্তিক ভিউ, অফিসিয়াল মোড এবং প্রিন্টেবল কমপ্লায়েন্স রিপোর্ট একসাথে।',
+            liveNow: 'লাইভ সিস্টেম',
+            liveTime: 'সার্ভার সময়',
+            liveCount: 'মোট হিসাব',
+            liveMode: 'বর্তমান থিম',
+            tagOne: 'অটো VAT/TAX',
+            tagTwo: 'অফিসিয়াল মোড',
+            tagThree: 'অডিট ট্রেইল',
+            tagFour: 'QR ভেরিফায়েড',
             grossTitle: 'গ্রস আপ VAT ও TAX ক্যালকুলেটর',
             vendorTitle: 'প্রোকিউরমেন্ট / ভেন্ডর ক্যালকুলেটর',
             categoryTitle: 'ক্যাটাগরি ভিত্তিক ক্যালকুলেটর',
@@ -373,7 +549,8 @@
           checkedBy: '',
           officialMode: false,
           roleTheme: 'finance',
-          verification: null
+          verification: null,
+          liveNowText: ''
         };
 
         function storageGet() {
@@ -421,6 +598,12 @@
             hash = hash >>> 0;
           }
           return hash.toString(16).toUpperCase();
+        }
+
+        function roleLabel(roleKey) {
+          if (roleKey === 'procurement') return t('roleProcurement');
+          if (roleKey === 'vendor') return t('roleVendor');
+          return t('roleFinance');
         }
 
         function money(value) {
@@ -648,6 +831,9 @@
           var printBanner = document.getElementById('print-banner-area');
           var historySnapshot = document.getElementById('history-snapshot-area');
           var signArea = document.getElementById('signature-area');
+          var liveTime = document.getElementById('live-time-value');
+          var liveCount = document.getElementById('live-count-value');
+          var liveMode = document.getElementById('live-mode-value');
           if (result) result.innerHTML = getResultHtml();
           if (resultPrint) resultPrint.innerHTML = getResultHtml();
           if (hist) hist.innerHTML = getHistoryHtml();
@@ -659,6 +845,23 @@
           if (printBanner) printBanner.innerHTML = getPrintBannerHtml();
           if (historySnapshot) historySnapshot.innerHTML = getHistorySnapshotHtml();
           if (signArea) signArea.innerHTML = getSignatureHtml();
+          if (liveCount) liveCount.textContent = String(state.history.length);
+          if (liveMode) liveMode.textContent = roleLabel(state.roleTheme);
+          if (liveTime) {
+            state.liveNowText = new Date().toLocaleTimeString();
+            liveTime.textContent = state.liveNowText;
+          }
+        }
+
+        function startLiveClock() {
+          var el = document.getElementById('live-time-value');
+          if (!el) return;
+          function tick() {
+            state.liveNowText = new Date().toLocaleTimeString();
+            el.textContent = state.liveNowText;
+          }
+          tick();
+          setInterval(tick, 1000);
         }
 
         function updateShareLinkText(msg) {
@@ -1093,6 +1296,38 @@
             + '    <div><h1>' + t('appTitle') + '</h1><p>' + t('appSubtitle') + '</p></div>'
             + '    <button id="lang-toggle" class="primary">' + t('languageToggle') + '</button>'
             + '  </header>'
+            + '  <section class="box front-stage screen-only reveal-up">'
+            + '    <div class="front-inner">'
+            + '      <div class="front-copy">'
+            + '        <h2>' + t('frontTitle') + '</h2>'
+            + '        <p>' + t('frontSubtitle') + '</p>'
+            + '        <div class="front-tags">'
+            + '          <span class="front-tag">' + t('tagOne') + '</span>'
+            + '          <span class="front-tag">' + t('tagTwo') + '</span>'
+            + '          <span class="front-tag">' + t('tagThree') + '</span>'
+            + '          <span class="front-tag">' + t('tagFour') + '</span>'
+            + '        </div>'
+            + '      </div>'
+            + '      <div class="front-grid">'
+            + '        <div class="icon-cloud">'
+            + '          <span class="icon-bubble">VAT</span>'
+            + '          <span class="icon-bubble">TAX</span>'
+            + '          <span class="icon-bubble">PDF</span>'
+            + '          <span class="icon-bubble">QR</span>'
+            + '          <span class="icon-bubble">SRO</span>'
+            + '          <span class="icon-bubble">NBR</span>'
+            + '        </div>'
+            + '        <div class="live-board">'
+            + '          <div class="live-head"><h4>' + t('liveNow') + '</h4><span class="live-dot"></span></div>'
+            + '          <div class="live-rows">'
+            + '            <div class="live-row"><span>' + t('liveTime') + '</span><strong id="live-time-value">--:--:--</strong></div>'
+            + '            <div class="live-row"><span>' + t('liveCount') + '</span><strong id="live-count-value">0</strong></div>'
+            + '            <div class="live-row"><span>' + t('liveMode') + '</span><strong id="live-mode-value">-</strong></div>'
+            + '          </div>'
+            + '        </div>'
+            + '      </div>'
+            + '    </div>'
+            + '  </section>'
             + '  <section class="box">'
             + '    <div class="amount-wrap">'
             + '      <label>' + t('sharedAmount') + '<input id="shared-bill" type="text" inputmode="decimal" placeholder="10000 / ১০,০০০" /></label>'
@@ -1144,8 +1379,8 @@
             + '    </article>'
             + '  </section>'
             + '  <section class="out-grid">'
-            + '    <section class="result"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
             + '    <section class="history sticky-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" style="margin-top:.25rem"></div></section>'
+            + '    <section class="result"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
             + '  </section>'
             + '  <section class="box">'
             + '    <h3 style="margin:0 0 .65rem">' + t('analyticsTitle') + '</h3>'
@@ -1229,6 +1464,7 @@
           prefillFromQuery();
           applyRoleTheme();
           refreshPanels();
+          startLiveClock();
         }
 
         function fail(msg) {
