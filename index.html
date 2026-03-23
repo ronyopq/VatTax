@@ -45,7 +45,7 @@
         --bg-a: #fff0dd;
         --bg-b: #ffe3c7;
       }
-      #app { width: min(1160px, 100% - 1rem); margin: 1rem auto 2rem; }
+      #app { width: min(1020px, 100% - 1rem); margin: 1rem auto 2rem; }
       .wrap { display: grid; gap: 1rem; }
       .hero, .box, .result, .history, .category-list {
         background: var(--card);
@@ -190,7 +190,7 @@
       .live-row strong { color: #174a38; }
       .amount-wrap { display: grid; gap: 0.35rem; }
       .amount-wrap p { margin: 0; color: #4f665a; font-size: 0.85rem; }
-      button { border: 0; border-radius: 9px; padding: 0.62rem 0.9rem; font-weight: 700; cursor: pointer; }
+      button { border: 0; border-radius: 10px; padding: 0.7rem 1rem; font-weight: 700; cursor: pointer; min-height: 48px; }
       .primary { color: #fff; background: var(--brand); }
       .ghost { background: #eff5ee; border: 1px solid #d6e2d3; color: #24372d; }
       .cards { display: grid; gap: 0.7rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -200,7 +200,7 @@
       .grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
       form { display: grid; gap: 0.55rem; margin-top: 0.7rem; }
       label { display: grid; gap: 0.3rem; font-size: 0.9rem; font-weight: 600; color: #2e473d; }
-      input, select { border: 1px solid #c8d6c6; border-radius: 9px; padding: 0.55rem 0.7rem; font: inherit; background: #fff; }
+      input, select { border: 1px solid #c8d6c6; border-radius: 10px; padding: 0.65rem 0.76rem; font: inherit; background: #fff; min-height: 50px; }
       input[readonly] { background: #ecf6ef; }
       .actions { display: flex; gap: 0.5rem; }
       .actions button { flex: 1; }
@@ -301,7 +301,7 @@
       .screen-only { display: block; }
       .easy-shell {
         display: grid;
-        gap: 0.9rem;
+        gap: 1rem;
       }
       .easy-header {
         background: linear-gradient(145deg, #ffffff 0%, #eef9ee 100%);
@@ -339,13 +339,16 @@
       .easy-main-grid {
         display: grid;
         gap: 0.8rem;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr;
       }
       .easy-card {
         border: 1px solid #d4e0d2;
-        border-radius: 12px;
+        border-radius: 14px;
         background: #fff;
-        padding: 0.85rem;
+        padding: 1rem;
+        max-width: 760px;
+        width: 100%;
+        margin: 0 auto;
       }
       .easy-card h3 {
         margin: 0;
@@ -363,17 +366,17 @@
       }
       .easy-form input,
       .easy-form select {
-        min-height: 44px;
+        min-height: 50px;
         font-size: 1rem;
       }
       .easy-form .actions button {
-        min-height: 44px;
-        font-size: 0.98rem;
+        min-height: 50px;
+        font-size: 1.02rem;
       }
       .easy-controls {
         display: grid;
-        gap: 0.65rem;
-        grid-template-columns: 1.1fr 0.9fr;
+        gap: 0.75rem;
+        grid-template-columns: 1.35fr 0.65fr;
       }
       .easy-advanced {
         border: 1px solid #d3ded1;
@@ -408,8 +411,8 @@
         color: #103b2d;
       }
       .amount-xxl input {
-        min-height: 62px;
-        font-size: clamp(1.55rem, 4vw, 2.2rem);
+        min-height: 72px;
+        font-size: clamp(1.75rem, 4.2vw, 2.35rem);
         font-weight: 700;
         letter-spacing: 0.01em;
       }
@@ -418,20 +421,22 @@
       }
       .menu-tabs {
         margin-top: 0.9rem;
-        display: inline-flex;
+        display: flex;
         gap: 0.45rem;
         border: 1px solid #cfddcd;
         border-radius: 12px;
-        padding: 0.28rem;
+        padding: 0.32rem;
         background: #f7fcf3;
+        width: 100%;
       }
       .menu-tab {
         border: 0;
         border-radius: 9px;
-        padding: 0.46rem 0.8rem;
+        padding: 0.5rem 0.8rem;
         font-weight: 700;
         background: transparent;
         color: #2c4f40;
+        flex: 1;
       }
       .menu-tab.active {
         background: #ffffff;
@@ -447,7 +452,7 @@
         background: #ffffff;
         border: 1px solid #d5e1d2;
         border-radius: 14px;
-        padding: 0.9rem;
+        padding: 1rem;
       }
       .view-head {
         display: flex;
@@ -499,6 +504,10 @@
         .easy-steps,
         .easy-main-grid,
         .easy-controls { grid-template-columns: 1fr; }
+        .amount-xxl input {
+          min-height: 64px;
+          font-size: clamp(1.45rem, 6vw, 1.9rem);
+        }
         .menu-tabs {
           width: 100%;
         }
