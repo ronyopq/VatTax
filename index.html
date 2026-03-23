@@ -6,6 +6,7 @@
     <meta name="description" content="Bangladesh VAT & TAX Calculator" />
     <title>Bangladesh VAT & TAX Calculator</title>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700;800&display=swap');
       :root {
         --bg: #f6f8ef;
         --bg-a: #e9f3d8;
@@ -22,7 +23,7 @@
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: "Segoe UI", "Hind Siliguri", sans-serif;
+        font-family: "Noto Serif Bengali", "Hind Siliguri", serif;
         color: var(--ink);
         background:
           radial-gradient(circle at 8% 12%, var(--bg-a) 0%, transparent 42%),
@@ -369,9 +370,6 @@
         min-height: 44px;
         font-size: 0.98rem;
       }
-      .u-hide {
-        display: none !important;
-      }
       .easy-controls {
         display: grid;
         gap: 0.65rem;
@@ -396,6 +394,75 @@
       .result-hero {
         display: grid;
         gap: 0.7rem;
+      }
+      .easy-header {
+        border-radius: 18px;
+        background: linear-gradient(125deg, #ffffff 0%, #f2f8ed 55%, #fff4df 100%);
+      }
+      .easy-sub {
+        font-size: 0.9rem;
+        color: #4f665a;
+      }
+      .amount-xxl label {
+        font-size: 1.1rem;
+        color: #103b2d;
+      }
+      .amount-xxl input {
+        min-height: 62px;
+        font-size: clamp(1.55rem, 4vw, 2.2rem);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      .amount-xxl p {
+        font-size: 0.85rem;
+      }
+      .menu-tabs {
+        margin-top: 0.9rem;
+        display: inline-flex;
+        gap: 0.45rem;
+        border: 1px solid #cfddcd;
+        border-radius: 12px;
+        padding: 0.28rem;
+        background: #f7fcf3;
+      }
+      .menu-tab {
+        border: 0;
+        border-radius: 9px;
+        padding: 0.46rem 0.8rem;
+        font-weight: 700;
+        background: transparent;
+        color: #2c4f40;
+      }
+      .menu-tab.active {
+        background: #ffffff;
+        color: #0f5f46;
+        box-shadow: 0 5px 14px rgba(19, 70, 52, 0.12);
+      }
+      .view-panels {
+        margin-top: 0.8rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .view-panel {
+        background: #ffffff;
+        border: 1px solid #d5e1d2;
+        border-radius: 14px;
+        padding: 0.9rem;
+      }
+      .view-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.55rem;
+      }
+      .view-head h3 {
+        margin: 0;
+        color: #184f3c;
+        font-size: 1.05rem;
+      }
+      .u-hide {
+        display: none !important;
       }
 
       .reveal-up { animation: revealUp 0.65s ease both; }
@@ -432,6 +499,12 @@
         .easy-steps,
         .easy-main-grid,
         .easy-controls { grid-template-columns: 1fr; }
+        .menu-tabs {
+          width: 100%;
+        }
+        .menu-tab {
+          flex: 1;
+        }
       }
 
       @keyframes drift {
@@ -704,6 +777,7 @@
           result: null,
           history: [],
           compareResult: null,
+          activeView: 'result',
           sharedBillText: '10000',
           orgName: 'Public Finance Team',
           printTime: '',
@@ -771,11 +845,18 @@
         }
 
         function money(value) {
-          var locale = state.lang === 'bn' ? 'bn-BD' : 'en-BD';
+          var locale = state.lang === 'bn' ? 'bn' : 'en-IN';
+          var safe = Number(value || 0);
+          var scaled = Math.round(safe * 100) / 100;
+          var hasFraction = Math.abs(scaled % 1) > 0;
           try {
-            return new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+            return new Intl.NumberFormat(locale, {
+              minimumFractionDigits: hasFraction ? 1 : 0,
+              maximumFractionDigits: hasFraction ? 2 : 0,
+              useGrouping: true
+            }).format(scaled);
           } catch (e) {
-            return String(Math.round(value * 100) / 100);
+            return String(scaled);
           }
         }
 
@@ -876,10 +957,7 @@
         }
 
         function getSignatureHtml() {
-          return '<div class="report-sign">'
-            + '<div class="sign-box"><h4>' + t('preparedBy') + '</h4><p>' + (state.preparedBy || '-') + '</p></div>'
-            + '<div class="sign-box"><h4>' + t('checkedBy') + '</h4><p>' + (state.checkedBy || '-') + '</p></div>'
-            + '</div>';
+          return '';
         }
 
         function getHistoryHtml() {
@@ -983,7 +1061,6 @@
           var qrUrl = state.verification ? state.verification.qrUrl : '';
           return '<div class="print-banner">'
             + '<h2>' + t('reportTitle') + '</h2>'
-            + '<p>' + t('organization') + ': ' + state.orgName + '</p>'
             + '<p>' + t('generatedAt') + ': ' + timeText + '</p>'
             + '<div class="qr-wrap">'
             +   (qrUrl ? '<img alt="QR verification" src="' + qrUrl + '" />' : '')
@@ -1233,6 +1310,27 @@
             updateUnifiedFormByMode();
           });
           updateUnifiedFormByMode();
+        }
+
+        function bindViewTabs() {
+          var tabs = document.querySelectorAll('.menu-tab[data-view]');
+          for (var i = 0; i < tabs.length; i++) {
+            tabs[i].addEventListener('click', function (ev) {
+              var view = ev.currentTarget.getAttribute('data-view');
+              if (!view) return;
+              state.activeView = view;
+              var resultPanel = document.getElementById('panel-result');
+              var historyPanel = document.getElementById('panel-history');
+              if (resultPanel) resultPanel.classList.toggle('u-hide', view !== 'result');
+              if (historyPanel) historyPanel.classList.toggle('u-hide', view !== 'history');
+
+              var allTabs = document.querySelectorAll('.menu-tab[data-view]');
+              for (var j = 0; j < allTabs.length; j++) {
+                var tbtn = allTabs[j];
+                tbtn.classList.toggle('active', tbtn.getAttribute('data-view') === view);
+              }
+            });
+          }
         }
 
         function bindShareButton() {
@@ -1560,19 +1658,15 @@
 
             + '  <section class="easy-controls">'
             + '    <section class="box">'
-            + '    <div class="amount-wrap">'
+            + '    <div class="amount-wrap amount-xxl">'
             + '      <label>' + t('sharedAmount') + '<input id="shared-bill" type="text" inputmode="decimal" placeholder="10000 / ১০,০০০" /></label>'
             + '      <p>' + t('sharedAmountHint') + '</p>'
             + '      <div class="toggle-row"><input id="official-mode-toggle" type="checkbox" /><span>' + t('officialMode') + '</span></div>'
             + '    </div>'
             + '    </section>'
-            + '    <section class="box screen-only">'
-            + '    <div class="org-row">'
-            + '      <label>' + t('roleTheme') + '<select id="role-theme"><option value="finance">' + t('roleFinance') + '</option><option value="procurement">' + t('roleProcurement') + '</option><option value="vendor">' + t('roleVendor') + '</option></select></label>'
-            + '      <label>' + t('organization') + '<input id="org-name" type="text" /></label>'
-            + '      <label>' + t('preparedBy') + '<input id="prepared-by" type="text" /></label>'
-            + '      <label>' + t('checkedBy') + '<input id="checked-by" type="text" /></label>'
-            + '    </div>'
+            + '    <section class="box">'
+            + '      <h3 style="margin:0 0 .2rem">' + t('homeTitle') + '</h3>'
+            + '      <p class="easy-note" style="margin:0">' + t('appSubtitle') + '</p>'
             + '    </section>'
             + '  </section>'
 
@@ -1595,9 +1689,15 @@
             + '    </article>'
             + '  </section>'
 
-            + '  <section class="out-grid">'
-            + '    <section class="history easy-history"><div class="head"><h3 style="margin:0">' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" class="history-scroll" style="margin-top:.25rem"></div><div id="history-pager-area"></div></section>'
-            + '    <section class="result result-hero"><div id="print-banner-area"></div><div class="head"><h3 style="margin:0">' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
+            + '  <section class="box">'
+            + '    <div class="menu-tabs">'
+            + '      <button class="menu-tab ' + (state.activeView === 'result' ? 'active' : '') + '" data-view="result" type="button">' + t('resultTitle') + '</button>'
+            + '      <button class="menu-tab ' + (state.activeView === 'history' ? 'active' : '') + '" data-view="history" type="button">' + t('historyTitle') + '</button>'
+            + '    </div>'
+            + '    <div class="view-panels">'
+            + '      <section id="panel-result" class="view-panel result-hero ' + (state.activeView === 'result' ? '' : 'u-hide') + '"><div id="print-banner-area"></div><div class="view-head"><h3>' + t('resultTitle') + '</h3><button id="copy-link" class="ghost screen-only">' + t('copyLink') + '</button></div><div id="result-table"></div><p id="share-note" class="note screen-only"></p></section>'
+            + '      <section id="panel-history" class="view-panel ' + (state.activeView === 'history' ? '' : 'u-hide') + '"><div class="view-head"><h3>' + t('historyTitle') + '</h3><button id="clear-history-side" class="ghost" type="button">' + t('clearHistory') + '</button></div><div id="history-area" class="history-scroll" style="margin-top:.25rem"></div><div id="history-pager-area"></div></section>'
+            + '    </div>'
             + '  </section>'
 
             + '  <details class="easy-advanced screen-only">'
@@ -1674,10 +1774,8 @@
 
           bindCardScroll();
           bindSharedAmount();
-          bindOrgName();
-          bindSignatureFields();
           bindOfficialMode();
-          bindRoleTheme();
+          bindViewTabs();
           bindModeSwitch();
           bindCategoryAutoFill();
           bindForm('unified-form', 'auto');
@@ -1686,10 +1784,8 @@
           bindProButtons();
           bindCompareEngine();
           prefillFromQuery();
-          applyRoleTheme();
           refreshPanels();
           bindHistoryPager();
-          startLiveClock();
         }
 
         function fail(msg) {
