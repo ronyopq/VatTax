@@ -466,11 +466,62 @@
         color: #184f3c;
         font-size: 1.05rem;
       }
-      .u-hide {
-        display: none !important;
+      .result-cards-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr 1fr;
       }
-
-      .reveal-up { animation: revealUp 0.65s ease both; }
+      .result-card {
+        border: 1px solid #d4e0d2;
+        border-radius: 12px;
+        padding: 1rem;
+        background: #ffffff;
+      }
+      .result-card.gross {
+        background: linear-gradient(135deg, #f0f7f4 0%, #ffffff 100%);
+        border-left: 4px solid #0b6a4e;
+      }
+      .result-card.vendor {
+        background: linear-gradient(135deg, #f5f9fd 0%, #ffffff 100%);
+        border-left: 4px solid #1b5e8a;
+      }
+      .result-card-title {
+        margin: 0 0 0.8rem 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #174f3c;
+      }
+      .result-card-title .amount {
+        display: block;
+        font-size: 1.8rem;
+        color: #0b6a4e;
+        margin-top: 0.3rem;
+      }
+      .result-card-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(212, 224, 210, 0.4);
+        font-size: 0.95rem;
+      }
+      .result-card-row:last-child {
+        border-bottom: none;
+      }
+      .result-card-label {
+        color: #2d5042;
+        font-weight: 600;
+      }
+      .result-card-value {
+        color: #174f3c;
+        font-weight: 700;
+        text-align: right;
+      }
+      @media (max-width: 960px) {
+        .result-cards-grid {
+          grid-template-columns: 1fr;
+        }
+      }
       .fireworks-canvas {
         position: fixed;
         inset: 0;
@@ -1029,14 +1080,71 @@
             return '<div class="result-empty-card"><h4>' + t('resultTitle') + '</h4><p>' + t('noResult') + '</p></div>';
           }
           var o = state.result.output;
-          return '<table><tbody>'
-            + '<tr><th>' + t('resultMode') + '</th><td>' + modeLabel(state.result.mode) + '</td></tr>'
-            + '<tr><th>' + t('resultBase') + '</th><td>' + money(o.base) + '</td></tr>'
-            + '<tr><th>' + t('resultVat') + '</th><td>' + money(o.vat) + '</td></tr>'
-            + '<tr><th>' + t('resultTax') + '</th><td>' + money(o.tax) + '</td></tr>'
-            + '<tr><th>' + t('resultTotal') + '</th><td>' + money(o.total) + '</td></tr>'
-            + '<tr><th>' + t('resultActual') + '</th><td>' + money(o.actualPay) + '</td></tr>'
-            + '</tbody></table>';
+          var mode = state.result.mode;
+          
+          var grossTitle = mode === 'vendor' ? t('resultTotal') : 'Bill Amount';
+          var vendorTitle = 'Net Amount';
+          
+          return '<div class="result-cards-grid">'
+            + '<article class="result-card gross">'
+            + '<div class="result-card-title">Invoice Amount Including VAT & TAX<span class="amount">' + money(o.total) + '</span></div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('formVat') + '(%)</span>'
+            + '<span class="result-card-value">' + state.result.input.vatRate + '</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('formTax') + '(%)</span>'
+            + '<span class="result-card-value">' + state.result.input.taxRate + '</span>'
+            + '</div>'
+            + '<div class="result-card-row" style="border-bottom: 2px solid #d4e0d2; padding: 0.7rem 0;margin-top: 0.3rem;">' 
+            + '<span class="result-card-label">Particulars</span>'
+            + '<span class="result-card-value">Tk</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">Total Amount</span>'
+            + '<span class="result-card-value">' + money(o.total) + '</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('resultVat') + '</span>'
+            + '<span class="result-card-value">' + money(o.vat) + '</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('resultTax') + '</span>'
+            + '<span class="result-card-value">' + money(o.tax) + '</span>'
+            + '</div>'
+            + '</article>'
+            + '<article class="result-card vendor">'
+            + '<div class="result-card-title">Invoice Amount Excluding VAT & TAX<span class="amount">' + money(o.actualPay) + '</span></div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('formVat') + '(%)</span>'
+            + '<span class="result-card-value">' + state.result.input.vatRate + '</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('formTax') + '(%)</span>'
+            + '<span class="result-card-value">' + state.result.input.taxRate + '</span>'
+            + '</div>'
+            + '<div class="result-card-row" style="border-bottom: 2px solid #d4e0d2; padding: 0.7rem 0;margin-top: 0.3rem;">' 
+            + '<span class="result-card-label">Particulars</span>'
+            + '<span class="result-card-value">Tk</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">Total Amount</span>'
+            + '<span class="result-card-value">' + money(o.total) + '</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('resultVat') + '</span>'
+            + '<span class="result-card-value">' + money(o.vat) + '</span>'
+            + '</div>'
+            + '<div class="result-card-row">'
+            + '<span class="result-card-label">' + t('resultTax') + '</span>'
+            + '<span class="result-card-value">' + money(o.tax) + '</span>'
+            + '</div>'
+            + '<div class="result-card-row" style="border-bottom: 2px solid #d4e0d2; padding: 0.7rem 0;margin-top: 0.3rem;">' 
+            + '<span class="result-card-label">Net Amount</span>'
+            + '<span class="result-card-value">' + money(o.actualPay) + '</span>'
+            + '</div>'
+            + '</article>'
+            + '</div>';
         }
 
         function getAuditHtml() {
