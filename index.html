@@ -369,6 +369,9 @@
         min-height: 44px;
         font-size: 0.98rem;
       }
+      .u-hide {
+        display: none !important;
+      }
       .easy-controls {
         display: grid;
         gap: 0.65rem;
@@ -1092,12 +1095,13 @@
           form.addEventListener('submit', function (ev) {
             ev.preventDefault();
             var fd = new FormData(form);
+            var selectedMode = mode === 'auto' ? String(fd.get('mode') || 'gross') : mode;
             var bill = getSharedBill();
             var vatRate = parseNum(fd.get('vatRate'));
             var taxRate = parseNum(fd.get('taxRate'));
             var categoryId = String(fd.get('category') || '');
 
-            if (mode === 'category') {
+            if (selectedMode === 'category') {
               var selected = null;
               var activeCategories = getVisibleCategories();
               for (var i = 0; i < activeCategories.length; i++) {
@@ -1125,9 +1129,9 @@
               return;
             }
 
-            var output = mode === 'vendor' ? calcVendor(bill, vatRate, taxRate) : calcGross(bill, vatRate, taxRate);
+            var output = selectedMode === 'vendor' ? calcVendor(bill, vatRate, taxRate) : calcGross(bill, vatRate, taxRate);
             state.result = {
-              mode: mode,
+              mode: selectedMode,
               categoryId: categoryId,
               input: { bill: bill, vatRate: vatRate, taxRate: taxRate },
               output: output,
@@ -1162,6 +1166,7 @@
               state.result = null;
               updateShareLinkText('');
               refreshPanels();
+              updateUnifiedFormByMode();
             });
           }
         }
@@ -1196,6 +1201,38 @@
             v.value = selected.vatRate;
             t.value = selected.taxRate;
           });
+
+          if (sel.value) {
+            sel.dispatchEvent(new Event('change'));
+          }
+        }
+
+        function updateUnifiedFormByMode() {
+          var modeSel = document.getElementById('calc-mode');
+          if (!modeSel) return;
+
+          var mode = modeSel.value || 'gross';
+          var manualFields = document.getElementById('manual-rate-fields');
+          var categoryFields = document.getElementById('category-fields');
+          var modeNote = document.getElementById('mode-note');
+
+          if (manualFields) manualFields.classList.toggle('u-hide', mode === 'category');
+          if (categoryFields) categoryFields.classList.toggle('u-hide', mode !== 'category');
+
+          if (modeNote) {
+            if (mode === 'vendor') modeNote.textContent = t('homeVendorInfo');
+            else if (mode === 'category') modeNote.textContent = t('homeCategoryInfo');
+            else modeNote.textContent = t('homeGrossInfo');
+          }
+        }
+
+        function bindModeSwitch() {
+          var modeSel = document.getElementById('calc-mode');
+          if (!modeSel) return;
+          modeSel.addEventListener('change', function () {
+            updateUnifiedFormByMode();
+          });
+          updateUnifiedFormByMode();
         }
 
         function bindShareButton() {
@@ -1477,12 +1514,16 @@
           }
 
           if (bill) state.sharedBillText = bill;
-          if (mode === 'gross' && vat && tax) setForm('gross-form', { vatRate: vat, taxRate: tax });
-          if (mode === 'vendor' && vat && tax) setForm('vendor-form', { vatRate: vat, taxRate: tax });
-          if (mode === 'category' && bill && category) {
-            setForm('category-form', { category: category });
+          if (mode || vat || tax || category) {
+            var map = {};
+            if (mode) map.mode = mode;
+            if (vat) map.vatRate = vat;
+            if (tax) map.taxRate = tax;
+            if (category) map.category = category;
+            setForm('unified-form', map);
+            updateUnifiedFormByMode();
             var sel = document.getElementById('category-select');
-            if (sel) sel.dispatchEvent(new Event('change'));
+            if (sel && mode === 'category') sel.dispatchEvent(new Event('change'));
           }
         }
 
@@ -1536,31 +1577,20 @@
             + '  </section>'
 
             + '  <section class="easy-main-grid">'
-            + '    <article class="easy-card" id="gross-section"><h3>' + t('homeGross') + '</h3><p class="easy-note">' + t('homeGrossInfo') + '</p>'
-            + '      <form id="gross-form" class="easy-form">'
-            + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
-            + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
-            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="gross-form">' + t('clear') + '</button></div>'
-            + '        <p class="error" data-error-for="gross-form"></p>'
-            + '      </form>'
-            + '    </article>'
-
-            + '    <article class="easy-card" id="vendor-section"><h3>' + t('homeVendor') + '</h3><p class="easy-note">' + t('homeVendorInfo') + '</p>'
-            + '      <form id="vendor-form" class="easy-form">'
-            + '        <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
-            + '        <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
-            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="vendor-form">' + t('clear') + '</button></div>'
-            + '        <p class="error" data-error-for="vendor-form"></p>'
-            + '      </form>'
-            + '    </article>'
-
-            + '    <article class="easy-card" id="category-section"><h3>' + t('homeCategory') + '</h3><p class="easy-note">' + t('homeCategoryInfo') + '</p>'
-            + '      <form id="category-form" class="easy-form">'
-            + '        <label>' + t('formCategory') + '<select id="category-select" name="category" required>' + options + '</select></label>'
-            + '        <label>' + t('formVat') + '<input id="category-vat" type="number" name="vatRate" readonly required></label>'
-            + '        <label>' + t('formTax') + '<input id="category-tax" type="number" name="taxRate" readonly required></label>'
-            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="category-form">' + t('clear') + '</button></div>'
-            + '        <p class="error" data-error-for="category-form"></p>'
+            + '    <article class="easy-card" id="calculator-section"><h3>' + t('homeTitle') + '</h3><p id="mode-note" class="easy-note">' + t('homeGrossInfo') + '</p>'
+            + '      <form id="unified-form" class="easy-form">'
+            + '        <label>' + t('compareMode') + '<select id="calc-mode" name="mode"><option value="gross">' + t('homeGross') + '</option><option value="vendor">' + t('homeVendor') + '</option><option value="category">' + t('homeCategory') + '</option></select></label>'
+            + '        <div id="manual-rate-fields">'
+            + '          <label>' + t('formVat') + '<input type="number" name="vatRate" min="0" max="100" step="0.01" required></label>'
+            + '          <label>' + t('formTax') + '<input type="number" name="taxRate" min="0" max="100" step="0.01" required></label>'
+            + '        </div>'
+            + '        <div id="category-fields" class="u-hide">'
+            + '          <label>' + t('formCategory') + '<select id="category-select" name="category" required>' + options + '</select></label>'
+            + '          <label>' + t('formVat') + '<input id="category-vat" type="number" readonly></label>'
+            + '          <label>' + t('formTax') + '<input id="category-tax" type="number" readonly></label>'
+            + '        </div>'
+            + '        <div class="actions"><button class="primary" type="submit">' + t('calculate') + '</button><button class="ghost" type="button" data-clear="unified-form">' + t('clear') + '</button></div>'
+            + '        <p class="error" data-error-for="unified-form"></p>'
             + '      </form>'
             + '    </article>'
             + '  </section>'
@@ -1648,10 +1678,9 @@
           bindSignatureFields();
           bindOfficialMode();
           bindRoleTheme();
+          bindModeSwitch();
           bindCategoryAutoFill();
-          bindForm('gross-form', 'gross');
-          bindForm('vendor-form', 'vendor');
-          bindForm('category-form', 'category');
+          bindForm('unified-form', 'auto');
           bindClearButtons();
           bindShareButton();
           bindProButtons();
