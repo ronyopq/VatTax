@@ -253,6 +253,7 @@
         backendOnline: "API Online",
         backendOffline: "API Offline",
         backendChecking: "API Check",
+        apiPerfMeta: "API {avg}ms O:{ok} F:{fail}",
         statusApiConfigSaved: "API settings saved",
         statusApiConfigReset: "API settings reset"
       },
@@ -297,6 +298,7 @@
         backendOnline: "API অনলাইন",
         backendOffline: "API অফলাইন",
         backendChecking: "API যাচাই",
+        apiPerfMeta: "API {avg}ms O:{ok} F:{fail}",
         statusApiConfigSaved: "API সেটিংস সংরক্ষণ হয়েছে",
         statusApiConfigReset: "API সেটিংস রিসেট হয়েছে"
       }
@@ -312,7 +314,12 @@
         errors: 0,
         modeUsage: { gross: 0, vendor: 0, category: 0 }
       },
-      apiHealthy: null
+      apiHealthy: null,
+      apiMetrics: {
+        ok: 0,
+        fail: 0,
+        totalMs: 0
+      }
     };
 
     const ANALYTICS_KEY = "vat-mobile-analytics-v1";
@@ -466,9 +473,15 @@
     }
 
     function updateAnalyticsInfo() {
-      refs.analyticsInfo.textContent = t("stats")
+      const baseStats = t("stats")
         .replace("{calc}", String(state.analytics.calculations))
         .replace("{err}", String(state.analytics.errors));
+      const avg = state.apiMetrics.ok > 0 ? round2(state.apiMetrics.totalMs / state.apiMetrics.ok) : 0;
+      const apiStats = t("apiPerfMeta")
+        .replace("{avg}", String(avg))
+        .replace("{ok}", String(state.apiMetrics.ok))
+        .replace("{fail}", String(state.apiMetrics.fail));
+      refs.analyticsInfo.textContent = `${baseStats} | ${apiStats}`;
     }
 
     function saveAnalytics() {
@@ -543,6 +556,7 @@
     async function fetchJsonWithRetry(path, options = {}, retries = apiConfig.retryCount) {
       const attempts = Math.max(0, Number(retries));
       for (let attempt = 0; attempt <= attempts; attempt += 1) {
+        const startedAt = performance.now();
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), apiConfig.timeoutMs);
         try {
@@ -563,12 +577,17 @@
 
           const payload = await response.json();
           state.apiHealthy = true;
+          state.apiMetrics.ok += 1;
+          state.apiMetrics.totalMs += Math.max(0, Number(performance.now() - startedAt) || 0);
+          updateAnalyticsInfo();
           renderBackendHealth();
           return payload;
         } catch (_) {
           clearTimeout(timeoutId);
           if (attempt === attempts) {
             state.apiHealthy = false;
+            state.apiMetrics.fail += 1;
+            updateAnalyticsInfo();
             renderBackendHealth();
             return null;
           }

@@ -229,6 +229,7 @@
                 <p class="text-xs uppercase tracking-[0.24em] text-slate-500" data-i18n="language">Language</p>
                 <p class="mt-1 text-sm text-slate-600" data-i18n="languageHint">Switch all labels and datasets instantly</p>
                 <p id="backendHealthBadge" class="mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold"></p>
+                <p id="apiPerfMeta" class="mt-2 text-[11px] text-slate-600"></p>
               </div>
               <div class="flex items-center gap-2">
                 <button id="apiSettingsToggle" type="button" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" data-i18n="apiSettings">API Settings</button>
@@ -504,6 +505,7 @@
         statusApiFallback: "Backend unavailable. Used local calculation.",
         statusApiConfigSaved: "API settings saved.",
         statusApiConfigReset: "API settings reset to defaults.",
+        apiPerfMeta: "API avg {avg} ms | OK {ok} | Fail {fail}",
         backendOnline: "Backend: Online",
         backendOffline: "Backend: Offline",
         backendChecking: "Backend: Checking",
@@ -621,6 +623,7 @@
         statusApiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার করা হয়েছে।",
         statusApiConfigSaved: "API সেটিংস সংরক্ষণ করা হয়েছে।",
         statusApiConfigReset: "API সেটিংস ডিফল্টে ফিরিয়ে দেওয়া হয়েছে।",
+        apiPerfMeta: "API গড় {avg} ms | OK {ok} | Fail {fail}",
         backendOnline: "ব্যাকএন্ড: অনলাইন",
         backendOffline: "ব্যাকএন্ড: অফলাইন",
         backendChecking: "ব্যাকএন্ড: যাচাই হচ্ছে",
@@ -661,7 +664,12 @@
       historyPage: 1,
       historyPageSize: 10,
       officialCategoryOnly: true,
-      apiHealthy: null
+      apiHealthy: null,
+      apiMetrics: {
+        ok: 0,
+        fail: 0,
+        totalMs: 0
+      }
     };
 
     const HISTORY_KEY = "bd-vat-tax-history-v1";
@@ -686,6 +694,7 @@
       apiSettingsReset: document.getElementById("apiSettingsReset"),
       apiSettingsHealth: document.getElementById("apiSettingsHealth"),
       backendHealthBadge: document.getElementById("backendHealthBadge"),
+      apiPerfMeta: document.getElementById("apiPerfMeta"),
       categorySelect: document.getElementById("categorySelect"),
       officialCategoryOnly: document.getElementById("officialCategoryOnly"),
       categoryFilterMeta: document.getElementById("categoryFilterMeta"),
@@ -1300,9 +1309,32 @@
       refs.backendHealthBadge.textContent = t("backendChecking");
     }
 
+    function renderApiPerfMeta() {
+      if (!refs.apiPerfMeta) return;
+      const avg = state.apiMetrics.ok > 0
+        ? roundHalfUp2(state.apiMetrics.totalMs / state.apiMetrics.ok)
+        : 0;
+      refs.apiPerfMeta.textContent = tt("apiPerfMeta", {
+        avg,
+        ok: state.apiMetrics.ok,
+        fail: state.apiMetrics.fail
+      });
+    }
+
+    function updateApiMetrics(durationMs, wasSuccess) {
+      if (wasSuccess) {
+        state.apiMetrics.ok += 1;
+        state.apiMetrics.totalMs += Math.max(0, Number(durationMs) || 0);
+      } else {
+        state.apiMetrics.fail += 1;
+      }
+      renderApiPerfMeta();
+    }
+
     async function fetchJsonWithRetry(path, options = {}, retries = apiConfig.retryCount) {
       const attempts = Math.max(0, Number(retries));
       for (let attempt = 0; attempt <= attempts; attempt += 1) {
+        const startedAt = performance.now();
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), apiConfig.timeoutMs);
         try {
@@ -1323,12 +1355,14 @@
 
           const payload = await response.json();
           state.apiHealthy = true;
+          updateApiMetrics(performance.now() - startedAt, true);
           renderBackendHealth();
           return payload;
         } catch (_) {
           clearTimeout(timeoutId);
           if (attempt === attempts) {
             state.apiHealthy = false;
+            updateApiMetrics(performance.now() - startedAt, false);
             renderBackendHealth();
             return null;
           }
@@ -1559,6 +1593,7 @@
       renderHistory();
       renderInsightPanel();
       renderBackendHealth();
+      renderApiPerfMeta();
     }
 
     function renderModeDescription() {
