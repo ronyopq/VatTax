@@ -1,5 +1,5 @@
 {
-  "name": "Bangladesh VAT & Tax Calculator",
+  "name": "BD VAT Tax Calculator",
   "short_name": "VAT Calc",
   "description": "Full VAT & Tax calculator with desktop workspace and mobile quick calculator",
   "start_url": "./index.html",
