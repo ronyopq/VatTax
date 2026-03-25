@@ -28,6 +28,8 @@ Quick checks:
 - `GET /api/v1/health`
 - `GET /api/v1/categories`
 - `POST /api/v1/calculate`
+- `GET /api/v1/history`
+- `POST /api/v1/history`
 
 ## Initial Endpoints
 - `POST /api/v1/calculate`

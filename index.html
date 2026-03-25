@@ -505,6 +505,8 @@
         statusApiFallback: "Backend unavailable. Used local calculation.",
         statusApiConfigSaved: "API settings saved.",
         statusApiConfigReset: "API settings reset to defaults.",
+        statusHistorySynced: "History synced to backend.",
+        statusHistorySyncFailed: "History sync failed. Saved locally.",
         apiPerfMeta: "API avg {avg} ms | OK {ok} | Fail {fail}",
         backendOnline: "Backend: Online",
         backendOffline: "Backend: Offline",
@@ -623,6 +625,8 @@
         statusApiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার করা হয়েছে।",
         statusApiConfigSaved: "API সেটিংস সংরক্ষণ করা হয়েছে।",
         statusApiConfigReset: "API সেটিংস ডিফল্টে ফিরিয়ে দেওয়া হয়েছে।",
+        statusHistorySynced: "হিস্ট্রি ব্যাকএন্ডে সিঙ্ক হয়েছে।",
+        statusHistorySyncFailed: "হিস্ট্রি সিঙ্ক হয়নি, লোকালে সংরক্ষিত আছে।",
         apiPerfMeta: "API গড় {avg} ms | OK {ok} | Fail {fail}",
         backendOnline: "ব্যাকএন্ড: অনলাইন",
         backendOffline: "ব্যাকএন্ড: অফলাইন",
@@ -968,6 +972,9 @@
       if (saved) {
         setStatus("statusHistorySaved", "success");
       }
+      syncHistoryRowToApi(row).catch(() => {
+        setStatus("statusHistorySyncFailed", "warning");
+      });
       renderHistory();
     }
 
@@ -1431,6 +1438,24 @@
         categoryName: input.categoryName || (categoryItem ? (state.lang === "bn" ? categoryItem.nameBn : categoryItem.nameEn) : ""),
         calculatedAt: result.calculatedAt || new Date().toISOString()
       };
+    }
+
+    async function syncHistoryRowToApi(row) {
+      const payload = await fetchJsonWithRetry("/history", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(row)
+      }, 0);
+
+      if (payload?.ok) {
+        setStatus("statusHistorySynced", "success");
+        return true;
+      }
+
+      setStatus("statusHistorySyncFailed", "warning");
+      return false;
     }
 
     function validateInputs() {
