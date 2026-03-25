@@ -1,7 +1,10 @@
-const CACHE_NAME = "vat-mobile-cache-v1";
+const CACHE_NAME = "vat-site-cache-v2";
 const CORE_ASSETS = [
+  "./",
+  "./index.html",
   "./mobile.html",
-  "./manifest.webmanifest"
+  "./manifest.webmanifest",
+  "./sw.js"
 ];
 
 self.addEventListener("install", (event) => {
@@ -39,7 +42,7 @@ self.addEventListener("fetch", (event) => {
           });
           return response;
         })
-        .catch(() => caches.match("./mobile.html"));
+        .catch(() => caches.match("./index.html") || caches.match("./mobile.html"));
     })
   );
 });

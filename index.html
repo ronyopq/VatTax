@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bangladesh VAT &amp; Tax Calculator</title>
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=" />
+  <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -629,6 +631,7 @@
 
     const HISTORY_KEY = "bd-vat-tax-history-v1";
     const HISTORY_LIMIT = 50;
+    const formatterCache = new Map();
 
     const refs = {
       langToggle: document.getElementById("langToggle"),
@@ -723,10 +726,18 @@
       return Math.round((value + Number.EPSILON) * 100) / 100;
     }
 
+    function getFormatter(locale, options) {
+      const key = `${locale}:${JSON.stringify(options)}`;
+      if (!formatterCache.has(key)) {
+        formatterCache.set(key, new Intl.NumberFormat(locale, options));
+      }
+      return formatterCache.get(key);
+    }
+
     function formatAmount(value) {
       const locale = state.lang === "bn" ? "bn-BD" : "en-IN";
       const rounded = roundHalfUp2(value);
-      return new Intl.NumberFormat(locale, {
+      return getFormatter(locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
       }).format(rounded);
@@ -734,15 +745,22 @@
 
     function formatDateTime(isoValue) {
       const locale = state.lang === "bn" ? "bn-BD" : "en-GB";
-      return new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(new Date(isoValue));
+      const date = new Date(isoValue);
+      const datePart = getFormatter(locale, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      }).format(date);
+      const timePart = getFormatter(locale, {
+        hour: "numeric",
+        minute: "2-digit"
+      }).format(date);
+      return `${datePart}, ${timePart}`;
     }
 
     function formatRate(value) {
       const locale = state.lang === "bn" ? "bn-BD" : "en-IN";
-      return new Intl.NumberFormat(locale, {
+      return getFormatter(locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
         useGrouping: false
@@ -1549,7 +1567,17 @@
       draw();
     }
 
+    function registerServiceWorker() {
+      if (!("serviceWorker" in navigator)) return;
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {
+          // Keep app usable even if service worker fails to register.
+        });
+      });
+    }
+
     loadHistory();
+    registerServiceWorker();
     initParticleBackground();
     renderText();
     renderEmptyResults();
