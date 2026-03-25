@@ -114,9 +114,24 @@
     <header class="mb-4 pb-3 border-b border-slate-200">
       <div class="flex items-center justify-between gap-3 mb-2">
         <h1 id="title" class="text-lg font-bold text-slate-900">Bangladesh VAT & Tax Calculator</h1>
-        <button id="langToggle" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800">বাংলা</button>
+        <div class="flex items-center gap-2">
+          <button id="apiSettingsToggle" type="button" class="px-3 py-1.5 text-[11px] font-semibold rounded-full border border-slate-200 bg-white text-slate-700">API</button>
+          <button id="langToggle" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800">বাংলা</button>
+        </div>
       </div>
       <p id="subtitle" class="text-xs text-slate-600">Minimal quick calculator for mobile use</p>
+      <div id="apiSettingsPanel" class="mt-2 space-y-2 rounded-lg border border-slate-200 bg-white/80 p-2.5" hidden>
+        <input id="apiBaseInput" class="field" placeholder="/api/v1" />
+        <div class="grid grid-cols-2 gap-2">
+          <input id="apiTimeoutInput" type="number" min="100" step="100" class="field" placeholder="3500" />
+          <input id="apiRetryInput" type="number" min="0" step="1" class="field" placeholder="1" />
+        </div>
+        <div class="flex gap-2">
+          <button id="apiSettingsSave" type="button" class="secondary-btn flex-1">Save</button>
+          <button id="apiSettingsReset" type="button" class="secondary-btn flex-1">Reset</button>
+          <button id="apiSettingsHealth" type="button" class="secondary-btn flex-1">Health</button>
+        </div>
+      </div>
       <div class="mt-2 flex items-center justify-between gap-3 text-[11px] text-slate-600">
         <div class="inline-flex items-center gap-2"><span class="live-dot"></span><span id="liveBadge">Live Auto Calculation</span></div>
         <div class="flex items-center gap-2">
@@ -207,6 +222,9 @@
         vat: "VAT Rate (%)",
         tax: "Tax Rate (%)",
         category: "Category",
+        apiSettings: "API",
+        apiHealth: "Health",
+        save: "Save",
         calc: "Calculate",
         reset: "Reset",
         ready: "Ready",
@@ -234,7 +252,9 @@
         apiFallback: "Backend unavailable, local calculation used",
         backendOnline: "API Online",
         backendOffline: "API Offline",
-        backendChecking: "API Check"
+        backendChecking: "API Check",
+        statusApiConfigSaved: "API settings saved",
+        statusApiConfigReset: "API settings reset"
       },
       bn: {
         title: "বাংলাদেশ ভ্যাট ও ট্যাক্স ক্যালকুলেটর",
@@ -246,6 +266,9 @@
         vat: "ভ্যাট হার (%)",
         tax: "ট্যাক্স হার (%)",
         category: "ক্যাটাগরি",
+        apiSettings: "API",
+        apiHealth: "হেলথ",
+        save: "সংরক্ষণ",
         calc: "হিসাব করুন",
         reset: "রিসেট",
         ready: "প্রস্তুত",
@@ -273,7 +296,9 @@
         apiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার হয়েছে",
         backendOnline: "API অনলাইন",
         backendOffline: "API অফলাইন",
-        backendChecking: "API যাচাই"
+        backendChecking: "API যাচাই",
+        statusApiConfigSaved: "API সেটিংস সংরক্ষণ হয়েছে",
+        statusApiConfigReset: "API সেটিংস রিসেট হয়েছে"
       }
     };
 
@@ -291,15 +316,27 @@
     };
 
     const ANALYTICS_KEY = "vat-mobile-analytics-v1";
-    const API_BASE = window.VAT_API_BASE || "/api/v1";
-    const API_TIMEOUT_MS = Number(window.VAT_API_TIMEOUT_MS || 3500);
-    const API_RETRY_COUNT = Number(window.VAT_API_RETRY_COUNT || 1);
+    const API_CONFIG_KEY = "vat-api-config-v1";
+    const API_DEFAULTS = {
+      base: String(window.VAT_API_BASE || "/api/v1"),
+      timeoutMs: Number(window.VAT_API_TIMEOUT_MS || 3500),
+      retryCount: Number(window.VAT_API_RETRY_COUNT || 1)
+    };
+    let apiConfig = { ...API_DEFAULTS };
     const bnDigitMap = { "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4", "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9" };
     const formatters = {};
 
     const refs = {
       title: document.getElementById("title"),
       subtitle: document.getElementById("subtitle"),
+      apiSettingsToggle: document.getElementById("apiSettingsToggle"),
+      apiSettingsPanel: document.getElementById("apiSettingsPanel"),
+      apiBaseInput: document.getElementById("apiBaseInput"),
+      apiTimeoutInput: document.getElementById("apiTimeoutInput"),
+      apiRetryInput: document.getElementById("apiRetryInput"),
+      apiSettingsSave: document.getElementById("apiSettingsSave"),
+      apiSettingsReset: document.getElementById("apiSettingsReset"),
+      apiSettingsHealth: document.getElementById("apiSettingsHealth"),
       langToggle: document.getElementById("langToggle"),
       modeGross: document.getElementById("modeGross"),
       modeVendor: document.getElementById("modeVendor"),
@@ -346,6 +383,40 @@
 
     function t(key) {
       return i18n[state.lang][key] || key;
+    }
+
+    function sanitizeApiConfig(input) {
+      const base = String(input?.base || API_DEFAULTS.base).trim() || API_DEFAULTS.base;
+      const timeoutMs = Math.max(100, Number(input?.timeoutMs) || API_DEFAULTS.timeoutMs);
+      const retryCount = Math.max(0, Number(input?.retryCount) || 0);
+      return { base, timeoutMs, retryCount };
+    }
+
+    function applyApiConfigInputs() {
+      refs.apiBaseInput.value = apiConfig.base;
+      refs.apiTimeoutInput.value = String(apiConfig.timeoutMs);
+      refs.apiRetryInput.value = String(apiConfig.retryCount);
+    }
+
+    function saveApiConfig() {
+      try {
+        localStorage.setItem(API_CONFIG_KEY, JSON.stringify(apiConfig));
+      } catch (_) {
+        // Ignore storage write failures.
+      }
+    }
+
+    function loadApiConfig() {
+      try {
+        const raw = localStorage.getItem(API_CONFIG_KEY);
+        if (!raw) {
+          apiConfig = sanitizeApiConfig(API_DEFAULTS);
+          return;
+        }
+        apiConfig = sanitizeApiConfig(JSON.parse(raw));
+      } catch (_) {
+        apiConfig = sanitizeApiConfig(API_DEFAULTS);
+      }
     }
 
     function round2(v) {
@@ -469,13 +540,13 @@
       refs.backendHealthBadge.textContent = t("backendChecking");
     }
 
-    async function fetchJsonWithRetry(path, options = {}, retries = API_RETRY_COUNT) {
+    async function fetchJsonWithRetry(path, options = {}, retries = apiConfig.retryCount) {
       const attempts = Math.max(0, Number(retries));
       for (let attempt = 0; attempt <= attempts; attempt += 1) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+        const timeoutId = setTimeout(() => controller.abort(), apiConfig.timeoutMs);
         try {
-          const response = await fetch(`${API_BASE}${path}`, {
+          const response = await fetch(`${apiConfig.base}${path}`, {
             ...options,
             signal: controller.signal,
             headers: {
@@ -567,6 +638,7 @@
     function applyLanguage() {
       refs.title.textContent = t("title");
       refs.subtitle.textContent = t("subtitle");
+      refs.apiSettingsToggle.textContent = t("apiSettings");
       refs.modeGross.textContent = t("gross");
       refs.modeVendor.textContent = t("vendor");
       refs.modeCategory.textContent = t("categoryMode");
@@ -575,7 +647,10 @@
       refs.lblTax.textContent = t("tax");
       refs.lblCategory.textContent = t("category");
       refs.btnCalc.textContent = t("calc");
+      refs.apiSettingsSave.textContent = t("save");
       refs.resetBtn.textContent = t("reset");
+      refs.apiSettingsReset.textContent = t("reset");
+      refs.apiSettingsHealth.textContent = t("apiHealth");
       refs.resultTitle.textContent = t("result");
       refs.liveBadge.textContent = t("live");
       refs.softHint.textContent = t("softHint");
@@ -594,6 +669,7 @@
         refs.status.textContent = t("ready");
       }
       renderBackendHealth();
+      applyApiConfigInputs();
       buildCategories();
       updateAnalyticsInfo();
     }
@@ -737,6 +813,35 @@
       autoCalculate();
     });
 
+    refs.apiSettingsToggle.addEventListener("click", () => {
+      refs.apiSettingsPanel.hidden = !refs.apiSettingsPanel.hidden;
+      if (!refs.apiSettingsPanel.hidden) {
+        applyApiConfigInputs();
+      }
+    });
+
+    refs.apiSettingsSave.addEventListener("click", () => {
+      apiConfig = sanitizeApiConfig({
+        base: refs.apiBaseInput.value,
+        timeoutMs: refs.apiTimeoutInput.value,
+        retryCount: refs.apiRetryInput.value
+      });
+      applyApiConfigInputs();
+      saveApiConfig();
+      refs.status.textContent = t("statusApiConfigSaved");
+    });
+
+    refs.apiSettingsReset.addEventListener("click", () => {
+      apiConfig = sanitizeApiConfig(API_DEFAULTS);
+      applyApiConfigInputs();
+      saveApiConfig();
+      refs.status.textContent = t("statusApiConfigReset");
+    });
+
+    refs.apiSettingsHealth.addEventListener("click", async () => {
+      await checkApiHealth();
+    });
+
     refs.modeGross.addEventListener("click", () => {
       setMode("gross");
       autoCalculate();
@@ -804,6 +909,7 @@
 
     async function initApp() {
       loadAnalytics();
+      loadApiConfig();
       await checkApiHealth();
       await loadCategoriesFromApi();
       setMode("gross");

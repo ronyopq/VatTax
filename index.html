@@ -230,7 +230,22 @@
                 <p class="mt-1 text-sm text-slate-600" data-i18n="languageHint">Switch all labels and datasets instantly</p>
                 <p id="backendHealthBadge" class="mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold"></p>
               </div>
-              <button id="langToggle" type="button" class="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 transition hover:bg-brand-100">বাংলা</button>
+              <div class="flex items-center gap-2">
+                <button id="apiSettingsToggle" type="button" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" data-i18n="apiSettings">API Settings</button>
+                <button id="langToggle" type="button" class="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 transition hover:bg-brand-100">বাংলা</button>
+              </div>
+            </div>
+            <div id="apiSettingsPanel" class="mt-3 space-y-2 rounded-xl border border-slate-200 bg-white/80 p-3" hidden>
+              <div class="grid gap-2 sm:grid-cols-3">
+                <input id="apiBaseInput" class="rounded-lg border border-slate-200 px-3 py-2 text-xs" placeholder="/api/v1" />
+                <input id="apiTimeoutInput" type="number" min="100" step="100" class="rounded-lg border border-slate-200 px-3 py-2 text-xs" placeholder="3500" />
+                <input id="apiRetryInput" type="number" min="0" step="1" class="rounded-lg border border-slate-200 px-3 py-2 text-xs" placeholder="1" />
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="apiSettingsSave" type="button" class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700" data-i18n="save">Save</button>
+                <button id="apiSettingsReset" type="button" class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700" data-i18n="reset">Reset</button>
+                <button id="apiSettingsHealth" type="button" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700" data-i18n="checkHealth">Check Health</button>
+              </div>
             </div>
             <div class="mt-4 rounded-2xl border border-brand-200/70 bg-brand-50/60 p-3">
               <p class="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700" data-i18n="insightTitle">Live Insight</p>
@@ -408,6 +423,8 @@
         pill3: "History and reporting ready",
         language: "Language",
         languageHint: "Switch all labels and datasets instantly",
+        apiSettings: "API Settings",
+        checkHealth: "Check Health",
         insightTitle: "Live Insight",
         insightHint: "Current mode, history stats, and quick readiness pulse.",
         insightMode: "Mode",
@@ -425,6 +442,7 @@
         categoryHint: "Category mode fills rates from the selected category.",
         activeMode: "Active Mode",
         calculate: "Calculate",
+        save: "Save",
         reset: "Reset",
         statusReady: "Form ready for calculation",
         workspace: "Workspace",
@@ -484,6 +502,8 @@
         statusCategoryApplied: "Category rates applied.",
         statusCategoryReset: "Selected category is not available in Official Mode and has been cleared.",
         statusApiFallback: "Backend unavailable. Used local calculation.",
+        statusApiConfigSaved: "API settings saved.",
+        statusApiConfigReset: "API settings reset to defaults.",
         backendOnline: "Backend: Online",
         backendOffline: "Backend: Offline",
         backendChecking: "Backend: Checking",
@@ -520,6 +540,8 @@
         pill3: "হিস্ট্রি ও রিপোর্টিং প্রস্তুত",
         language: "ভাষা",
         languageHint: "সব লেবেল ও ডেটাসেট সঙ্গে সঙ্গে বদলান",
+        apiSettings: "API সেটিংস",
+        checkHealth: "হেলথ চেক",
         insightTitle: "লাইভ ইনসাইট",
         insightHint: "বর্তমান মোড, হিস্ট্রি পরিসংখ্যান ও প্রস্তুতি সূচক।",
         insightMode: "মোড",
@@ -537,6 +559,7 @@
         categoryHint: "ক্যাটাগরি মোডে নির্বাচিত ক্যাটাগরি থেকে হার পূরণ হবে।",
         activeMode: "সক্রিয় মোড",
         calculate: "হিসাব করুন",
+        save: "সংরক্ষণ",
         reset: "রিসেট",
         statusReady: "ফর্ম হিসাবের জন্য প্রস্তুত",
         workspace: "ওয়ার্কস্পেস",
@@ -596,6 +619,8 @@
         statusCategoryApplied: "নির্বাচিত ক্যাটাগরির হার প্রয়োগ করা হয়েছে।",
         statusCategoryReset: "অফিসিয়াল মোডে নির্বাচিত ক্যাটাগরি উপলব্ধ নয়, তাই সেটি খালি করা হয়েছে।",
         statusApiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার করা হয়েছে।",
+        statusApiConfigSaved: "API সেটিংস সংরক্ষণ করা হয়েছে।",
+        statusApiConfigReset: "API সেটিংস ডিফল্টে ফিরিয়ে দেওয়া হয়েছে।",
         backendOnline: "ব্যাকএন্ড: অনলাইন",
         backendOffline: "ব্যাকএন্ড: অফলাইন",
         backendChecking: "ব্যাকএন্ড: যাচাই হচ্ছে",
@@ -642,12 +667,24 @@
     const HISTORY_KEY = "bd-vat-tax-history-v1";
     const HISTORY_LIMIT = 50;
     const formatterCache = new Map();
-    const API_BASE = window.VAT_API_BASE || "/api/v1";
-    const API_TIMEOUT_MS = Number(window.VAT_API_TIMEOUT_MS || 3500);
-    const API_RETRY_COUNT = Number(window.VAT_API_RETRY_COUNT || 1);
+    const API_CONFIG_KEY = "vat-api-config-v1";
+    const API_DEFAULTS = {
+      base: String(window.VAT_API_BASE || "/api/v1"),
+      timeoutMs: Number(window.VAT_API_TIMEOUT_MS || 3500),
+      retryCount: Number(window.VAT_API_RETRY_COUNT || 1)
+    };
+    let apiConfig = { ...API_DEFAULTS };
 
     const refs = {
       langToggle: document.getElementById("langToggle"),
+      apiSettingsToggle: document.getElementById("apiSettingsToggle"),
+      apiSettingsPanel: document.getElementById("apiSettingsPanel"),
+      apiBaseInput: document.getElementById("apiBaseInput"),
+      apiTimeoutInput: document.getElementById("apiTimeoutInput"),
+      apiRetryInput: document.getElementById("apiRetryInput"),
+      apiSettingsSave: document.getElementById("apiSettingsSave"),
+      apiSettingsReset: document.getElementById("apiSettingsReset"),
+      apiSettingsHealth: document.getElementById("apiSettingsHealth"),
       backendHealthBadge: document.getElementById("backendHealthBadge"),
       categorySelect: document.getElementById("categorySelect"),
       officialCategoryOnly: document.getElementById("officialCategoryOnly"),
@@ -683,6 +720,46 @@
 
     function t(key) {
       return dict[state.lang][key] || key;
+    }
+
+    function sanitizeApiConfig(input) {
+      const base = String(input?.base || API_DEFAULTS.base).trim() || API_DEFAULTS.base;
+      const timeoutMs = Math.max(100, Number(input?.timeoutMs) || API_DEFAULTS.timeoutMs);
+      const retryCount = Math.max(0, Number(input?.retryCount) || 0);
+      return {
+        base,
+        timeoutMs,
+        retryCount
+      };
+    }
+
+    function applyApiConfigInputs() {
+      if (!refs.apiBaseInput || !refs.apiTimeoutInput || !refs.apiRetryInput) return;
+      refs.apiBaseInput.value = apiConfig.base;
+      refs.apiTimeoutInput.value = String(apiConfig.timeoutMs);
+      refs.apiRetryInput.value = String(apiConfig.retryCount);
+    }
+
+    function saveApiConfig() {
+      try {
+        localStorage.setItem(API_CONFIG_KEY, JSON.stringify(apiConfig));
+      } catch (_) {
+        // Ignore storage write issues; runtime config still applies.
+      }
+    }
+
+    function loadApiConfig() {
+      try {
+        const raw = localStorage.getItem(API_CONFIG_KEY);
+        if (!raw) {
+          apiConfig = sanitizeApiConfig(API_DEFAULTS);
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        apiConfig = sanitizeApiConfig(parsed);
+      } catch (_) {
+        apiConfig = sanitizeApiConfig(API_DEFAULTS);
+      }
     }
 
     function setStatus(key, tone = "neutral") {
@@ -1223,13 +1300,13 @@
       refs.backendHealthBadge.textContent = t("backendChecking");
     }
 
-    async function fetchJsonWithRetry(path, options = {}, retries = API_RETRY_COUNT) {
+    async function fetchJsonWithRetry(path, options = {}, retries = apiConfig.retryCount) {
       const attempts = Math.max(0, Number(retries));
       for (let attempt = 0; attempt <= attempts; attempt += 1) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+        const timeoutId = setTimeout(() => controller.abort(), apiConfig.timeoutMs);
         try {
-          const response = await fetch(`${API_BASE}${path}`, {
+          const response = await fetch(`${apiConfig.base}${path}`, {
             ...options,
             signal: controller.signal,
             headers: {
@@ -1473,6 +1550,7 @@
         }
       });
       buildCategoryOptions();
+      applyApiConfigInputs();
       renderModeDescription();
       setStatus(state.statusKey, state.statusTone);
       if (state.lastResult) {
@@ -1545,6 +1623,35 @@
     refs.langToggle.addEventListener("click", () => {
       state.lang = state.lang === "en" ? "bn" : "en";
       renderText();
+    });
+
+    refs.apiSettingsToggle.addEventListener("click", () => {
+      refs.apiSettingsPanel.hidden = !refs.apiSettingsPanel.hidden;
+      if (!refs.apiSettingsPanel.hidden) {
+        applyApiConfigInputs();
+      }
+    });
+
+    refs.apiSettingsSave.addEventListener("click", () => {
+      apiConfig = sanitizeApiConfig({
+        base: refs.apiBaseInput.value,
+        timeoutMs: refs.apiTimeoutInput.value,
+        retryCount: refs.apiRetryInput.value
+      });
+      applyApiConfigInputs();
+      saveApiConfig();
+      setStatus("statusApiConfigSaved", "success");
+    });
+
+    refs.apiSettingsReset.addEventListener("click", () => {
+      apiConfig = sanitizeApiConfig(API_DEFAULTS);
+      applyApiConfigInputs();
+      saveApiConfig();
+      setStatus("statusApiConfigReset", "neutral");
+    });
+
+    refs.apiSettingsHealth.addEventListener("click", async () => {
+      await checkApiHealth();
     });
 
     refs.modeButtons.forEach((button) => {
@@ -1729,6 +1836,7 @@
 
     async function initApp() {
       loadHistory();
+      loadApiConfig();
       await checkApiHealth();
       await loadCategoriesFromApi();
       registerServiceWorker();
