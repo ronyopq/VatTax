@@ -372,7 +372,7 @@
   </div>
 
   <script>
-    const categories = [
+    let categories = [
       { id: "standard-goods", nameEn: "Standard Goods Supply", nameBn: "মানক পণ্য সরবরাহ", vatRate: 15, taxRate: 5, approved: true },
       { id: "standard-services", nameEn: "Standard Service Supply", nameBn: "মানক সেবা সরবরাহ", vatRate: 15, taxRate: 10, approved: true },
       { id: "restaurant-ac", nameEn: "Air Conditioned Restaurant", nameBn: "শীতাতপ নিয়ন্ত্রিত রেস্তোরাঁ", vatRate: 15, taxRate: 5, approved: true },
@@ -482,6 +482,7 @@
         statusResetDone: "Form reset completed.",
         statusCategoryApplied: "Category rates applied.",
         statusCategoryReset: "Selected category is not available in Official Mode and has been cleared.",
+        statusApiFallback: "Backend unavailable. Used local calculation.",
         officialOnlyCategories: "Official categories only",
         categoryFilterMeta: "Showing {visible} of {total} categories",
         categoryNoMatch: "No category available in current filter",
@@ -590,6 +591,7 @@
         statusResetDone: "ফর্ম রিসেট সম্পন্ন হয়েছে।",
         statusCategoryApplied: "নির্বাচিত ক্যাটাগরির হার প্রয়োগ করা হয়েছে।",
         statusCategoryReset: "অফিসিয়াল মোডে নির্বাচিত ক্যাটাগরি উপলব্ধ নয়, তাই সেটি খালি করা হয়েছে।",
+        statusApiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার করা হয়েছে।",
         officialOnlyCategories: "শুধু অফিসিয়াল ক্যাটাগরি",
         categoryFilterMeta: "মোট {total} এর মধ্যে {visible} টি ক্যাটাগরি দেখানো হচ্ছে",
         categoryNoMatch: "বর্তমান ফিল্টারে কোনো ক্যাটাগরি পাওয়া যায়নি",
@@ -632,6 +634,7 @@
     const HISTORY_KEY = "bd-vat-tax-history-v1";
     const HISTORY_LIMIT = 50;
     const formatterCache = new Map();
+    const API_BASE = window.VAT_API_BASE || "/api/v1";
 
     const refs = {
       langToggle: document.getElementById("langToggle"),
@@ -1178,6 +1181,77 @@
       return categories.find((item) => item.id === categoryId) || null;
     }
 
+    function mapApiCategory(item) {
+      const id = item?.code || item?.id;
+      if (!id) return null;
+      return {
+        id,
+        nameEn: String(item?.nameEn || item?.name || id),
+        nameBn: String(item?.nameBn || item?.nameEn || item?.name || id),
+        vatRate: roundHalfUp2(Number(item?.vatRate) || 0),
+        taxRate: roundHalfUp2(Number(item?.taxRate) || 0),
+        approved: item?.approved !== false
+      };
+    }
+
+    async function loadCategoriesFromApi() {
+      try {
+        const response = await fetch(`${API_BASE}/categories`, {
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) return false;
+        const payload = await response.json();
+        const incoming = Array.isArray(payload?.items)
+          ? payload.items.map(mapApiCategory).filter(Boolean)
+          : [];
+        if (incoming.length === 0) return false;
+        categories = incoming;
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function calculateResultFromApi(input) {
+      try {
+        const response = await fetch(`${API_BASE}/calculate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({
+            mode: state.mode,
+            bill: input.bill,
+            vatRate: input.vatRate,
+            taxRate: input.taxRate,
+            categoryCode: state.mode === "category" ? refs.categorySelect.value || null : null
+          })
+        });
+        if (!response.ok) return null;
+        const payload = await response.json();
+        if (!payload?.ok || !payload?.result) return null;
+
+        const result = payload.result;
+        const categoryItem = getCategoryById(result.categoryCode || refs.categorySelect.value || "");
+        return {
+          mode: result.mode,
+          bill: roundHalfUp2(Number(result.bill) || input.bill),
+          vatRate: roundHalfUp2(Number(result.vatRate) || input.vatRate),
+          taxRate: roundHalfUp2(Number(result.taxRate) || input.taxRate),
+          vatAmount: roundHalfUp2(Number(result.vatAmount) || 0),
+          taxAmount: roundHalfUp2(Number(result.taxAmount) || 0),
+          totalDeduction: roundHalfUp2(Number(result.totalDeduction) || 0),
+          grossAmount: roundHalfUp2(Number(result.grossAmount) || 0),
+          payableAmount: roundHalfUp2(Number(result.payableAmount) || 0),
+          categoryName: input.categoryName || (categoryItem ? (state.lang === "bn" ? categoryItem.nameBn : categoryItem.nameEn) : ""),
+          calculatedAt: result.calculatedAt || new Date().toISOString()
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+
     function validateInputs() {
       const billRaw = refs.billInput.value;
       const bill = parseNumber(billRaw);
@@ -1435,7 +1509,7 @@
     refs.vatRateInput.addEventListener("blur", normalizeRateOnBlur);
     refs.taxRateInput.addEventListener("blur", normalizeRateOnBlur);
 
-    refs.form.addEventListener("submit", (event) => {
+    refs.form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const validation = validateInputs();
       if (!validation.ok) {
@@ -1443,12 +1517,18 @@
         return;
       }
 
-      const result = calculateResult(validation.data);
+      const fallbackResult = calculateResult(validation.data);
+      const apiResult = await calculateResultFromApi(validation.data);
+      const result = apiResult || fallbackResult;
       state.lastResult = result;
       renderResult(result);
       addHistory(result);
       setTab("result");
-      setStatus("statusCalculated", "success");
+      if (apiResult) {
+        setStatus("statusCalculated", "success");
+      } else {
+        setStatus("statusApiFallback", "warning");
+      }
     });
 
     refs.clearHistoryBtn.addEventListener("click", () => {
@@ -1576,13 +1656,18 @@
       });
     }
 
-    loadHistory();
-    registerServiceWorker();
-    initParticleBackground();
-    renderText();
-    renderEmptyResults();
-    setMode("gross");
-    setTab("result");
+    async function initApp() {
+      loadHistory();
+      await loadCategoriesFromApi();
+      registerServiceWorker();
+      initParticleBackground();
+      renderText();
+      renderEmptyResults();
+      setMode("gross");
+      setTab("result");
+    }
+
+    initApp();
   </script>
 </body>
 </html>

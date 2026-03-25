@@ -181,7 +181,7 @@
   </div>
 
   <script>
-    const categories = [
+    let categories = [
       { id: "standard-goods", en: "Standard Goods", bn: "মানক পণ্য", vat: 15, tax: 5 },
       { id: "standard-services", en: "Standard Service", bn: "মানক সেবা", vat: 15, tax: 10 },
       { id: "restaurant-ac", en: "AC Restaurant", bn: "শীতাতপ রেস্তোরাঁ", vat: 15, tax: 5 },
@@ -227,7 +227,8 @@
         errTaxRequired: "Tax rate is required",
         errRateRange: "VAT/Tax must be in 0-100",
         errCategoryRequired: "Select a category in category mode",
-        stats: "Calc: {calc} | Err: {err}"
+        stats: "Calc: {calc} | Err: {err}",
+        apiFallback: "Backend unavailable, local calculation used"
       },
       bn: {
         title: "বাংলাদেশ ভ্যাট ও ট্যাক্স ক্যালকুলেটর",
@@ -262,7 +263,8 @@
         errTaxRequired: "ট্যাক্স হার দিন",
         errRateRange: "ভ্যাট/ট্যাক্স হার ০-১০০ এর মধ্যে হতে হবে",
         errCategoryRequired: "ক্যাটাগরি মোডে ক্যাটাগরি নির্বাচন করুন",
-        stats: "ক্যালক: {calc} | ত্রুটি: {err}"
+        stats: "ক্যালক: {calc} | ত্রুটি: {err}",
+        apiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার হয়েছে"
       }
     };
 
@@ -279,6 +281,7 @@
     };
 
     const ANALYTICS_KEY = "vat-mobile-analytics-v1";
+    const API_BASE = window.VAT_API_BASE || "/api/v1";
     const bnDigitMap = { "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4", "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9" };
     const formatters = {};
 
@@ -420,6 +423,72 @@
         opt.textContent = `${state.lang === "bn" ? c.bn : c.en} (${c.vat}/${c.tax}%)`;
         refs.categorySelect.appendChild(opt);
       });
+    }
+
+    function mapApiCategory(item) {
+      const id = item?.code || item?.id;
+      if (!id) return null;
+      return {
+        id,
+        en: String(item?.nameEn || item?.name || id),
+        bn: String(item?.nameBn || item?.nameEn || item?.name || id),
+        vat: round2(Number(item?.vatRate) || 0),
+        tax: round2(Number(item?.taxRate) || 0)
+      };
+    }
+
+    async function loadCategoriesFromApi() {
+      try {
+        const response = await fetch(`${API_BASE}/categories`, {
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) return false;
+        const payload = await response.json();
+        const incoming = Array.isArray(payload?.items)
+          ? payload.items.map(mapApiCategory).filter(Boolean)
+          : [];
+        if (incoming.length === 0) return false;
+        categories = incoming;
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function calculateViaApi(input) {
+      try {
+        const response = await fetch(`${API_BASE}/calculate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({
+            mode: state.mode,
+            bill: input.bill,
+            vatRate: input.vat,
+            taxRate: input.tax,
+            categoryCode: state.mode === "category" ? refs.categorySelect.value || null : null
+          })
+        });
+        if (!response.ok) return null;
+        const payload = await response.json();
+        if (!payload?.ok || !payload?.result) return null;
+        const result = payload.result;
+        return {
+          mode: result.mode,
+          bill: round2(Number(result.bill) || input.bill),
+          vatRate: round2(Number(result.vatRate) || input.vat),
+          taxRate: round2(Number(result.taxRate) || input.tax),
+          vatAmount: round2(Number(result.vatAmount) || 0),
+          taxAmount: round2(Number(result.taxAmount) || 0),
+          totalDeduction: round2(Number(result.totalDeduction) || 0),
+          payable: round2(Number(result.payableAmount) || 0),
+          gross: round2(Number(result.grossAmount) || 0)
+        };
+      } catch (_) {
+        return null;
+      }
     }
 
     function applyLanguage() {
@@ -622,14 +691,20 @@
     refs.vatInput.addEventListener("input", autoCalculate);
     refs.taxInput.addEventListener("input", autoCalculate);
 
-    document.getElementById("calcForm").addEventListener("submit", (e) => {
+    document.getElementById("calcForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const input = validate();
       if (!input) {
         refs.status.textContent = t("err");
         return;
       }
-      renderResult(calculate(input));
+
+      const fallbackResult = calculate(input);
+      const apiResult = await calculateViaApi(input);
+      renderResult(apiResult || fallbackResult);
+      if (!apiResult) {
+        refs.status.textContent = t("apiFallback");
+      }
     });
 
     refs.resetBtn.addEventListener("click", () => {
@@ -653,12 +728,17 @@
       }
     }
 
-    loadAnalytics();
-    setMode("gross");
-    buildCategories();
-    applyLanguage();
-    initPwa();
-    autoCalculate();
+    async function initApp() {
+      loadAnalytics();
+      await loadCategoriesFromApi();
+      setMode("gross");
+      buildCategories();
+      applyLanguage();
+      initPwa();
+      autoCalculate();
+    }
+
+    initApp();
   </script>
 </body>
 </html>
