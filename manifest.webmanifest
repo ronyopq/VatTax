@@ -1,0 +1,19 @@
+{
+  "name": "Bangladesh VAT & Tax Calculator",
+  "short_name": "VAT Calc",
+  "description": "Minimal mobile VAT & Tax calculator with live auto-calculation",
+  "start_url": "./mobile.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf7ef",
+  "theme_color": "#334528",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

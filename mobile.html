@@ -1,1 +1,664 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Mobile VAT Calculator</title><meta http-equiv="refresh" content="0; url=../B%20Vat%20Tax/mobile.html"></head><body></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bangladesh VAT & Tax Calculator - Mobile</title>
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --theme-500: #5f7f45;
+      --theme-700: #334528;
+      --bg-top: #faf7ef;
+      --bg-bottom: #f3f7f1;
+    }
+    body.theme-vendor {
+      --theme-500: #2563eb;
+      --theme-700: #1d4ed8;
+      --bg-top: #f2f7ff;
+      --bg-bottom: #eaf2ff;
+    }
+    body.theme-category {
+      --theme-500: #db2777;
+      --theme-700: #be185d;
+      --bg-top: #fff5fb;
+      --bg-bottom: #fff0f8;
+    }
+    body {
+      font-family: "Noto Serif Bengali", serif;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input, select, button {
+      font-size: 16px;
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 12px;
+    }
+    .field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+    }
+    .field:focus {
+      outline: none;
+      border-color: var(--theme-500);
+      box-shadow: 0 0 0 3px rgba(95, 127, 69, 0.12);
+    }
+    .mode-btn {
+      min-height: 44px;
+      padding: 11px 10px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #0f172a;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .mode-btn.active {
+      background: var(--theme-700);
+      border-color: var(--theme-700);
+      color: #fff;
+    }
+    .primary-btn {
+      min-height: 44px;
+      background: var(--theme-700);
+      color: #fff;
+      border: none;
+      font-weight: 700;
+    }
+    .secondary-btn {
+      min-height: 44px;
+      background: #f1f5f9;
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+      font-weight: 700;
+    }
+    .field-error {
+      font-size: 11px;
+      color: #be123c;
+      min-height: 16px;
+    }
+    .soft-hint {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #16a34a;
+      display: inline-block;
+      box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.65);
+      animation: pulse 1.8s infinite;
+    }
+    .result-grid {
+      contain: layout style paint;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="theme-gross min-h-screen antialiased">
+  <div class="w-full max-w-md mx-auto px-4 py-4 flex flex-col min-h-screen">
+    <header class="mb-4 pb-3 border-b border-slate-200">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <h1 id="title" class="text-lg font-bold text-slate-900">Bangladesh VAT & Tax Calculator</h1>
+        <button id="langToggle" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800">বাংলা</button>
+      </div>
+      <p id="subtitle" class="text-xs text-slate-600">Minimal quick calculator for mobile use</p>
+      <div class="mt-2 flex items-center justify-between gap-3 text-[11px] text-slate-600">
+        <div class="inline-flex items-center gap-2"><span class="live-dot"></span><span id="liveBadge">Live Auto Calculation</span></div>
+        <div id="analyticsInfo" class="font-semibold"></div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-3 gap-2 mb-5">
+      <button type="button" class="mode-btn active" data-mode="gross" id="modeGross">Gross Up</button>
+      <button type="button" class="mode-btn" data-mode="vendor" id="modeVendor">Vendor</button>
+      <button type="button" class="mode-btn" data-mode="category" id="modeCategory">Category</button>
+    </div>
+
+    <form id="calcForm" class="space-y-4 mb-4">
+      <div class="space-y-2">
+        <label for="billInput" id="lblBill" class="block text-sm font-semibold text-slate-700">Bill Amount</label>
+        <input id="billInput" class="field" type="number" inputmode="decimal" step="0.01" placeholder="100000" />
+        <p id="billErr" class="field-error"></p>
+      </div>
+
+      <div class="space-y-2">
+        <label for="vatInput" id="lblVat" class="block text-sm font-semibold text-slate-700">VAT Rate (%)</label>
+        <input id="vatInput" class="field" type="number" inputmode="decimal" step="0.01" placeholder="15" />
+        <p id="vatErr" class="field-error"></p>
+      </div>
+
+      <div class="space-y-2">
+        <label for="taxInput" id="lblTax" class="block text-sm font-semibold text-slate-700">Tax Rate (%)</label>
+        <input id="taxInput" class="field" type="number" inputmode="decimal" step="0.01" placeholder="5" />
+        <p id="taxErr" class="field-error"></p>
+      </div>
+
+      <div id="categoryWrap" class="space-y-2" hidden>
+        <label for="categorySelect" id="lblCategory" class="block text-sm font-semibold text-slate-700">Category</label>
+        <select id="categorySelect" class="field"></select>
+        <div class="flex items-center justify-between gap-2">
+          <p id="categoryErr" class="field-error"></p>
+          <span id="overrideBadge" class="text-[11px] font-semibold text-amber-700" hidden></span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button type="submit" id="btnCalc" class="primary-btn flex-1">Calculate</button>
+        <button id="resetBtn" type="button" class="secondary-btn flex-1">Reset</button>
+      </div>
+
+      <p id="status" class="text-xs text-slate-500 text-center py-1">Ready</p>
+      <p id="softHint" class="soft-hint text-center">Type values to see instant live results</p>
+    </form>
+
+    <section id="resultSection" class="bg-white rounded-xl border border-slate-200 p-4" hidden>
+      <h2 id="resultTitle" class="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-3">Calculation Result</h2>
+      <dl id="resultDisplay" class="space-y-2.5 text-sm result-grid">
+        <div class="flex justify-between border-b pb-2"><span id="kMode">Mode</span><span id="vMode" class="font-semibold"></span></div>
+        <div class="flex justify-between border-b pb-2"><span id="kBill">Input Bill</span><span id="vBill" class="font-semibold"></span></div>
+        <div class="flex justify-between border-b pb-2"><span id="kVat">VAT Amount</span><span id="vVat" class="font-semibold"></span></div>
+        <div class="flex justify-between border-b pb-2"><span id="kTax">Tax Amount</span><span id="vTax" class="font-semibold"></span></div>
+        <div class="flex justify-between border-b pb-2"><span id="kDeduction">Total Deduction</span><span id="vDeduction" class="font-semibold"></span></div>
+        <div class="flex justify-between border-b pb-2"><span id="kPayable">Payable</span><span id="vPayable" class="font-bold text-lg"></span></div>
+        <div class="flex justify-between"><span id="kGross">Gross Amount</span><span id="vGross" class="font-bold text-lg"></span></div>
+      </dl>
+    </section>
+  </div>
+
+  <script>
+    const categories = [
+      { id: "standard-goods", en: "Standard Goods", bn: "মানক পণ্য", vat: 15, tax: 5 },
+      { id: "standard-services", en: "Standard Service", bn: "মানক সেবা", vat: 15, tax: 10 },
+      { id: "restaurant-ac", en: "AC Restaurant", bn: "শীতাতপ রেস্তোরাঁ", vat: 15, tax: 5 },
+      { id: "restaurant-nonac", en: "Non-AC Restaurant", bn: "অশীতাতপ রেস্তোরাঁ", vat: 7.5, tax: 5 },
+      { id: "construction", en: "Construction", bn: "নির্মাণ", vat: 7.5, tax: 3 },
+      { id: "consultancy", en: "Consultancy", bn: "পরামর্শক", vat: 15, tax: 10 },
+      { id: "transport", en: "Transport", bn: "পরিবহন", vat: 15, tax: 3 },
+      { id: "hotel", en: "Hotel", bn: "হোটেল", vat: 15, tax: 10 },
+      { id: "telecom", en: "Telecom", bn: "টেলিযোগ", vat: 15, tax: 3 }
+    ];
+
+    const i18n = {
+      en: {
+        title: "Bangladesh VAT & Tax Calculator",
+        subtitle: "Minimal quick calculator for mobile use",
+        gross: "Gross Up",
+        vendor: "Vendor",
+        categoryMode: "Category",
+        bill: "Bill Amount",
+        vat: "VAT Rate (%)",
+        tax: "Tax Rate (%)",
+        category: "Category",
+        calc: "Calculate",
+        reset: "Reset",
+        ready: "Ready",
+        result: "Calculation Result",
+        mode: "Mode",
+        inputBill: "Input Bill",
+        vatAmount: "VAT Amount",
+        taxAmount: "Tax Amount",
+        deduction: "Total Deduction",
+        payable: "Payable",
+        grossAmount: "Gross Amount",
+        pickCategory: "Select category",
+        err: "Please provide valid bill, VAT, and tax values",
+        done: "Calculation complete",
+        live: "Live Auto Calculation",
+        softHint: "Type values to see instant live results",
+        override: "Manual override active",
+        errBillRequired: "Bill amount is required",
+        errBillRange: "Bill must be > 0 and <= 10,000,000",
+        errVatRequired: "VAT rate is required",
+        errTaxRequired: "Tax rate is required",
+        errRateRange: "VAT/Tax must be in 0-100",
+        errCategoryRequired: "Select a category in category mode",
+        stats: "Calc: {calc} | Err: {err}"
+      },
+      bn: {
+        title: "বাংলাদেশ ভ্যাট ও ট্যাক্স ক্যালকুলেটর",
+        subtitle: "মোবাইলের জন্য মিনিমাল কুইক ক্যালকুলেটর",
+        gross: "গ্রস আপ",
+        vendor: "ভেন্ডর",
+        categoryMode: "ক্যাটাগরি",
+        bill: "বিলের পরিমাণ",
+        vat: "ভ্যাট হার (%)",
+        tax: "ট্যাক্স হার (%)",
+        category: "ক্যাটাগরি",
+        calc: "হিসাব করুন",
+        reset: "রিসেট",
+        ready: "প্রস্তুত",
+        result: "হিসাবের ফলাফল",
+        mode: "মোড",
+        inputBill: "ইনপুট বিল",
+        vatAmount: "ভ্যাটের পরিমাণ",
+        taxAmount: "ট্যাক্সের পরিমাণ",
+        deduction: "মোট কর্তন",
+        payable: "পরিশোধযোগ্য",
+        grossAmount: "মোট পরিমাণ",
+        pickCategory: "ক্যাটাগরি নির্বাচন করুন",
+        err: "সঠিক বিল, ভ্যাট এবং ট্যাক্স দিন",
+        done: "হিসাব সম্পন্ন",
+        live: "লাইভ অটো ক্যালকুলেশন",
+        softHint: "ইনপুট দিলেই ফলাফল সাথে সাথে আপডেট হবে",
+        override: "ম্যানুয়াল ওভাররাইড চালু",
+        errBillRequired: "বিলের পরিমাণ দিন",
+        errBillRange: "বিল ০ এর বেশি এবং ১,০০,০০,০০০ এর মধ্যে হতে হবে",
+        errVatRequired: "ভ্যাট হার দিন",
+        errTaxRequired: "ট্যাক্স হার দিন",
+        errRateRange: "ভ্যাট/ট্যাক্স হার ০-১০০ এর মধ্যে হতে হবে",
+        errCategoryRequired: "ক্যাটাগরি মোডে ক্যাটাগরি নির্বাচন করুন",
+        stats: "ক্যালক: {calc} | ত্রুটি: {err}"
+      }
+    };
+
+    const state = {
+      lang: "bn",
+      mode: "gross",
+      lastResult: null,
+      selectedCategoryId: "",
+      analytics: {
+        calculations: 0,
+        errors: 0,
+        modeUsage: { gross: 0, vendor: 0, category: 0 }
+      }
+    };
+
+    const ANALYTICS_KEY = "vat-mobile-analytics-v1";
+    const bnDigitMap = { "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4", "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9" };
+    const formatters = {};
+
+    const refs = {
+      title: document.getElementById("title"),
+      subtitle: document.getElementById("subtitle"),
+      langToggle: document.getElementById("langToggle"),
+      modeGross: document.getElementById("modeGross"),
+      modeVendor: document.getElementById("modeVendor"),
+      modeCategory: document.getElementById("modeCategory"),
+      liveBadge: document.getElementById("liveBadge"),
+      analyticsInfo: document.getElementById("analyticsInfo"),
+      lblBill: document.getElementById("lblBill"),
+      lblVat: document.getElementById("lblVat"),
+      lblTax: document.getElementById("lblTax"),
+      lblCategory: document.getElementById("lblCategory"),
+      billInput: document.getElementById("billInput"),
+      vatInput: document.getElementById("vatInput"),
+      taxInput: document.getElementById("taxInput"),
+      categoryWrap: document.getElementById("categoryWrap"),
+      categorySelect: document.getElementById("categorySelect"),
+      btnCalc: document.getElementById("btnCalc"),
+      resetBtn: document.getElementById("resetBtn"),
+      status: document.getElementById("status"),
+      softHint: document.getElementById("softHint"),
+      billErr: document.getElementById("billErr"),
+      vatErr: document.getElementById("vatErr"),
+      taxErr: document.getElementById("taxErr"),
+      categoryErr: document.getElementById("categoryErr"),
+      overrideBadge: document.getElementById("overrideBadge"),
+      resultSection: document.getElementById("resultSection"),
+      resultTitle: document.getElementById("resultTitle"),
+      resultDisplay: document.getElementById("resultDisplay"),
+      kMode: document.getElementById("kMode"),
+      kBill: document.getElementById("kBill"),
+      kVat: document.getElementById("kVat"),
+      kTax: document.getElementById("kTax"),
+      kDeduction: document.getElementById("kDeduction"),
+      kPayable: document.getElementById("kPayable"),
+      kGross: document.getElementById("kGross"),
+      vMode: document.getElementById("vMode"),
+      vBill: document.getElementById("vBill"),
+      vVat: document.getElementById("vVat"),
+      vTax: document.getElementById("vTax"),
+      vDeduction: document.getElementById("vDeduction"),
+      vPayable: document.getElementById("vPayable"),
+      vGross: document.getElementById("vGross")
+    };
+
+    function t(key) {
+      return i18n[state.lang][key] || key;
+    }
+
+    function round2(v) {
+      return Math.round((v + Number.EPSILON) * 100) / 100;
+    }
+
+    function normalizeNumberRaw(value) {
+      return String(value || "")
+        .replace(/[০-৯]/g, (d) => bnDigitMap[d] || d)
+        .replace(/[৳,\s]/g, "")
+        .replace("٫", ".");
+    }
+
+    function parseNumber(value) {
+      const normalized = normalizeNumberRaw(value);
+      if (!normalized) return NaN;
+      if (!/^-?(?:\d+|\d*\.\d+)$/.test(normalized)) return NaN;
+      return Number(normalized);
+    }
+
+    function getFormatter(kind = "amount") {
+      const locale = state.lang === "bn" ? "bn-BD" : "en-IN";
+      const key = `${locale}-${kind}`;
+      if (!formatters[key]) {
+        formatters[key] = new Intl.NumberFormat(locale, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: kind === "rate" ? 2 : 2,
+          useGrouping: true
+        });
+      }
+      return formatters[key];
+    }
+
+    function format(v) {
+      return getFormatter("amount").format(round2(v));
+    }
+
+    function formatRate(v) {
+      return getFormatter("rate").format(round2(v));
+    }
+
+    function clearErrors() {
+      refs.billErr.textContent = "";
+      refs.vatErr.textContent = "";
+      refs.taxErr.textContent = "";
+      refs.categoryErr.textContent = "";
+    }
+
+    function updateAnalyticsInfo() {
+      refs.analyticsInfo.textContent = t("stats")
+        .replace("{calc}", String(state.analytics.calculations))
+        .replace("{err}", String(state.analytics.errors));
+    }
+
+    function saveAnalytics() {
+      localStorage.setItem(ANALYTICS_KEY, JSON.stringify(state.analytics));
+    }
+
+    function loadAnalytics() {
+      try {
+        const raw = localStorage.getItem(ANALYTICS_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          state.analytics.calculations = Number(parsed.calculations) || 0;
+          state.analytics.errors = Number(parsed.errors) || 0;
+          state.analytics.modeUsage = {
+            gross: Number(parsed.modeUsage?.gross) || 0,
+            vendor: Number(parsed.modeUsage?.vendor) || 0,
+            category: Number(parsed.modeUsage?.category) || 0
+          };
+        }
+      } catch (_) {
+        // Keep default analytics state on parse/storage errors.
+      }
+    }
+
+    function buildCategories() {
+      refs.categorySelect.innerHTML = "";
+      const first = document.createElement("option");
+      first.value = "";
+      first.textContent = t("pickCategory");
+      refs.categorySelect.appendChild(first);
+
+      categories.forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = `${state.lang === "bn" ? c.bn : c.en} (${c.vat}/${c.tax}%)`;
+        refs.categorySelect.appendChild(opt);
+      });
+    }
+
+    function applyLanguage() {
+      refs.title.textContent = t("title");
+      refs.subtitle.textContent = t("subtitle");
+      refs.modeGross.textContent = t("gross");
+      refs.modeVendor.textContent = t("vendor");
+      refs.modeCategory.textContent = t("categoryMode");
+      refs.lblBill.textContent = t("bill");
+      refs.lblVat.textContent = t("vat");
+      refs.lblTax.textContent = t("tax");
+      refs.lblCategory.textContent = t("category");
+      refs.btnCalc.textContent = t("calc");
+      refs.resetBtn.textContent = t("reset");
+      refs.resultTitle.textContent = t("result");
+      refs.liveBadge.textContent = t("live");
+      refs.softHint.textContent = t("softHint");
+      refs.langToggle.textContent = state.lang === "en" ? "বাংলা" : "English";
+      refs.kMode.textContent = t("mode");
+      refs.kBill.textContent = t("inputBill");
+      refs.kVat.textContent = t("vatAmount");
+      refs.kTax.textContent = t("taxAmount");
+      refs.kDeduction.textContent = t("deduction");
+      refs.kPayable.textContent = t("payable");
+      refs.kGross.textContent = t("grossAmount");
+      refs.overrideBadge.textContent = t("override");
+      if (!refs.resultSection.hidden) {
+        refs.status.textContent = t("done");
+      } else {
+        refs.status.textContent = t("ready");
+      }
+      buildCategories();
+      updateAnalyticsInfo();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.body.className = `theme-${mode} min-h-screen antialiased`;
+      refs.modeGross.classList.toggle("active", mode === "gross");
+      refs.modeVendor.classList.toggle("active", mode === "vendor");
+      refs.modeCategory.classList.toggle("active", mode === "category");
+      refs.categoryWrap.hidden = mode !== "category";
+      if (mode !== "category") {
+        refs.overrideBadge.hidden = true;
+      }
+    }
+
+    function validate() {
+      clearErrors();
+
+      const billRaw = refs.billInput.value;
+      const vatRaw = refs.vatInput.value;
+      const taxRaw = refs.taxInput.value;
+
+      const bill = parseNumber(billRaw);
+      let vat = parseNumber(vatRaw);
+      let tax = parseNumber(taxRaw);
+
+      if (!String(billRaw).trim()) {
+        refs.billErr.textContent = t("errBillRequired");
+      } else if (!Number.isFinite(bill) || bill <= 0 || bill > 10000000) {
+        refs.billErr.textContent = t("errBillRange");
+      }
+
+      if (state.mode === "category") {
+        const selected = categories.find((c) => c.id === refs.categorySelect.value);
+        if (!selected) {
+          refs.categoryErr.textContent = t("errCategoryRequired");
+        } else {
+          state.selectedCategoryId = selected.id;
+          const isOverride = Number.isFinite(vat) && Number.isFinite(tax) &&
+            (round2(vat) !== round2(selected.vat) || round2(tax) !== round2(selected.tax));
+          refs.overrideBadge.hidden = !isOverride;
+          if (!isOverride) {
+            vat = selected.vat;
+            tax = selected.tax;
+            refs.vatInput.value = selected.vat;
+            refs.taxInput.value = selected.tax;
+          }
+        }
+      } else {
+        state.selectedCategoryId = "";
+      }
+
+      if (!String(vatRaw).trim()) {
+        refs.vatErr.textContent = t("errVatRequired");
+      } else if (!Number.isFinite(vat) || vat < 0 || vat > 100) {
+        refs.vatErr.textContent = t("errRateRange");
+      }
+
+      if (!String(taxRaw).trim()) {
+        refs.taxErr.textContent = t("errTaxRequired");
+      } else if (!Number.isFinite(tax) || tax < 0 || tax > 100) {
+        refs.taxErr.textContent = t("errRateRange");
+      }
+
+      const hasErrors = refs.billErr.textContent || refs.vatErr.textContent || refs.taxErr.textContent || refs.categoryErr.textContent;
+      if (hasErrors) return null;
+
+      return { bill: round2(bill), vat: round2(vat), tax: round2(tax) };
+    }
+
+    function calculate(input) {
+      const rate = input.vat + input.tax;
+      const base = state.mode === "vendor"
+        ? round2(input.bill / (1 + rate / 100))
+        : input.bill;
+
+      const vatAmount = round2(base * input.vat / 100);
+      const taxAmount = round2(base * input.tax / 100);
+      const totalDeduction = round2(vatAmount + taxAmount);
+      const gross = state.mode === "vendor" ? input.bill : round2(base + totalDeduction);
+
+      return {
+        mode: state.mode,
+        bill: input.bill,
+        vatAmount,
+        taxAmount,
+        totalDeduction,
+        payable: base,
+        gross
+      };
+    }
+
+    function modeLabel(mode) {
+      if (mode === "gross") return t("gross");
+      if (mode === "vendor") return t("vendor");
+      return t("categoryMode");
+    }
+
+    function renderResult(r) {
+      refs.vMode.textContent = modeLabel(r.mode);
+      refs.vBill.textContent = `৳ ${format(r.bill)}`;
+      refs.vVat.textContent = `৳ ${format(r.vatAmount)} (${formatRate(r.vatRate)}%)`;
+      refs.vTax.textContent = `৳ ${format(r.taxAmount)} (${formatRate(r.taxRate)}%)`;
+      refs.vDeduction.textContent = `৳ ${format(r.totalDeduction)}`;
+      refs.vPayable.textContent = `৳ ${format(r.payable)}`;
+      refs.vGross.textContent = `৳ ${format(r.gross)}`;
+      refs.resultSection.hidden = false;
+      refs.status.textContent = t("done");
+      state.lastResult = r;
+    }
+
+    function autoCalculate() {
+      const input = validate();
+      if (!input) {
+        refs.resultSection.hidden = true;
+        const hasAnyInput =
+          String(refs.billInput.value).trim() ||
+          String(refs.vatInput.value).trim() ||
+          String(refs.taxInput.value).trim() ||
+          String(refs.categorySelect.value).trim();
+        refs.status.textContent = hasAnyInput ? t("err") : t("ready");
+        if (hasAnyInput) {
+          state.analytics.errors += 1;
+          saveAnalytics();
+          updateAnalyticsInfo();
+        }
+        return;
+      }
+      const result = calculate(input);
+      renderResult(result);
+      state.analytics.calculations += 1;
+      state.analytics.modeUsage[state.mode] += 1;
+      saveAnalytics();
+      updateAnalyticsInfo();
+    }
+
+    refs.langToggle.addEventListener("click", () => {
+      state.lang = state.lang === "en" ? "bn" : "en";
+      applyLanguage();
+      autoCalculate();
+    });
+
+    refs.modeGross.addEventListener("click", () => {
+      setMode("gross");
+      autoCalculate();
+    });
+    refs.modeVendor.addEventListener("click", () => {
+      setMode("vendor");
+      autoCalculate();
+    });
+    refs.modeCategory.addEventListener("click", () => {
+      setMode("category");
+      autoCalculate();
+    });
+
+    refs.categorySelect.addEventListener("change", () => {
+      const selected = categories.find((c) => c.id === refs.categorySelect.value);
+      if (selected) {
+        state.selectedCategoryId = selected.id;
+        refs.vatInput.value = selected.vat;
+        refs.taxInput.value = selected.tax;
+        refs.overrideBadge.hidden = true;
+      }
+      autoCalculate();
+    });
+
+    refs.billInput.addEventListener("input", autoCalculate);
+    refs.vatInput.addEventListener("input", autoCalculate);
+    refs.taxInput.addEventListener("input", autoCalculate);
+
+    document.getElementById("calcForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = validate();
+      if (!input) {
+        refs.status.textContent = t("err");
+        return;
+      }
+      renderResult(calculate(input));
+    });
+
+    refs.resetBtn.addEventListener("click", () => {
+      document.getElementById("calcForm").reset();
+      refs.resultSection.hidden = true;
+      refs.status.textContent = t("ready");
+      clearErrors();
+      refs.overrideBadge.hidden = true;
+      setMode("gross");
+      buildCategories();
+      autoCalculate();
+    });
+
+    function initPwa() {
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch(() => {
+            // Silent fail keeps calculator usable offline-disabled.
+          });
+        });
+      }
+    }
+
+    loadAnalytics();
+    setMode("gross");
+    buildCategories();
+    applyLanguage();
+    initPwa();
+    autoCalculate();
+  </script>
+</body>
+</html>
