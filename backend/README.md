@@ -15,6 +15,20 @@ This folder bootstraps the backend foundation for the VAT calculator.
 - Auth: JWT access + refresh tokens
 - Validation: Zod/Joi
 
+## Run Backend MVP (Current)
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Server starts at `http://localhost:8788`.
+
+Quick checks:
+- `GET /api/v1/health`
+- `GET /api/v1/categories`
+- `POST /api/v1/calculate`
+
 ## Initial Endpoints
 - `POST /api/v1/calculate`
 - `POST /api/v1/history`
