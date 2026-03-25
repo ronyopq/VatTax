@@ -228,6 +228,7 @@
               <div>
                 <p class="text-xs uppercase tracking-[0.24em] text-slate-500" data-i18n="language">Language</p>
                 <p class="mt-1 text-sm text-slate-600" data-i18n="languageHint">Switch all labels and datasets instantly</p>
+                <p id="backendHealthBadge" class="mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold"></p>
               </div>
               <button id="langToggle" type="button" class="rounded-full border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-800 transition hover:bg-brand-100">বাংলা</button>
             </div>
@@ -483,6 +484,9 @@
         statusCategoryApplied: "Category rates applied.",
         statusCategoryReset: "Selected category is not available in Official Mode and has been cleared.",
         statusApiFallback: "Backend unavailable. Used local calculation.",
+        backendOnline: "Backend: Online",
+        backendOffline: "Backend: Offline",
+        backendChecking: "Backend: Checking",
         officialOnlyCategories: "Official categories only",
         categoryFilterMeta: "Showing {visible} of {total} categories",
         categoryNoMatch: "No category available in current filter",
@@ -592,6 +596,9 @@
         statusCategoryApplied: "নির্বাচিত ক্যাটাগরির হার প্রয়োগ করা হয়েছে।",
         statusCategoryReset: "অফিসিয়াল মোডে নির্বাচিত ক্যাটাগরি উপলব্ধ নয়, তাই সেটি খালি করা হয়েছে।",
         statusApiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার করা হয়েছে।",
+        backendOnline: "ব্যাকএন্ড: অনলাইন",
+        backendOffline: "ব্যাকএন্ড: অফলাইন",
+        backendChecking: "ব্যাকএন্ড: যাচাই হচ্ছে",
         officialOnlyCategories: "শুধু অফিসিয়াল ক্যাটাগরি",
         categoryFilterMeta: "মোট {total} এর মধ্যে {visible} টি ক্যাটাগরি দেখানো হচ্ছে",
         categoryNoMatch: "বর্তমান ফিল্টারে কোনো ক্যাটাগরি পাওয়া যায়নি",
@@ -628,16 +635,20 @@
       history: [],
       historyPage: 1,
       historyPageSize: 10,
-      officialCategoryOnly: true
+      officialCategoryOnly: true,
+      apiHealthy: null
     };
 
     const HISTORY_KEY = "bd-vat-tax-history-v1";
     const HISTORY_LIMIT = 50;
     const formatterCache = new Map();
     const API_BASE = window.VAT_API_BASE || "/api/v1";
+    const API_TIMEOUT_MS = Number(window.VAT_API_TIMEOUT_MS || 3500);
+    const API_RETRY_COUNT = Number(window.VAT_API_RETRY_COUNT || 1);
 
     const refs = {
       langToggle: document.getElementById("langToggle"),
+      backendHealthBadge: document.getElementById("backendHealthBadge"),
       categorySelect: document.getElementById("categorySelect"),
       officialCategoryOnly: document.getElementById("officialCategoryOnly"),
       categoryFilterMeta: document.getElementById("categoryFilterMeta"),
@@ -1181,6 +1192,80 @@
       return categories.find((item) => item.id === categoryId) || null;
     }
 
+    function renderBackendHealth() {
+      if (!refs.backendHealthBadge) return;
+
+      refs.backendHealthBadge.classList.remove(
+        "border-emerald-200",
+        "bg-emerald-50",
+        "text-emerald-700",
+        "border-rose-200",
+        "bg-rose-50",
+        "text-rose-700",
+        "border-amber-200",
+        "bg-amber-50",
+        "text-amber-700"
+      );
+
+      if (state.apiHealthy === true) {
+        refs.backendHealthBadge.classList.add("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+        refs.backendHealthBadge.textContent = t("backendOnline");
+        return;
+      }
+
+      if (state.apiHealthy === false) {
+        refs.backendHealthBadge.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+        refs.backendHealthBadge.textContent = t("backendOffline");
+        return;
+      }
+
+      refs.backendHealthBadge.classList.add("border-amber-200", "bg-amber-50", "text-amber-700");
+      refs.backendHealthBadge.textContent = t("backendChecking");
+    }
+
+    async function fetchJsonWithRetry(path, options = {}, retries = API_RETRY_COUNT) {
+      const attempts = Math.max(0, Number(retries));
+      for (let attempt = 0; attempt <= attempts; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+        try {
+          const response = await fetch(`${API_BASE}${path}`, {
+            ...options,
+            signal: controller.signal,
+            headers: {
+              Accept: "application/json",
+              ...(options.headers || {})
+            }
+          });
+
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            if (attempt === attempts) return null;
+            continue;
+          }
+
+          const payload = await response.json();
+          state.apiHealthy = true;
+          renderBackendHealth();
+          return payload;
+        } catch (_) {
+          clearTimeout(timeoutId);
+          if (attempt === attempts) {
+            state.apiHealthy = false;
+            renderBackendHealth();
+            return null;
+          }
+        }
+      }
+      return null;
+    }
+
+    async function checkApiHealth() {
+      const payload = await fetchJsonWithRetry("/health", {}, 0);
+      state.apiHealthy = Boolean(payload?.ok);
+      renderBackendHealth();
+    }
+
     function mapApiCategory(item) {
       const id = item?.code || item?.id;
       if (!id) return null;
@@ -1195,61 +1280,46 @@
     }
 
     async function loadCategoriesFromApi() {
-      try {
-        const response = await fetch(`${API_BASE}/categories`, {
-          headers: { Accept: "application/json" }
-        });
-        if (!response.ok) return false;
-        const payload = await response.json();
-        const incoming = Array.isArray(payload?.items)
-          ? payload.items.map(mapApiCategory).filter(Boolean)
-          : [];
-        if (incoming.length === 0) return false;
-        categories = incoming;
-        return true;
-      } catch (_) {
-        return false;
-      }
+      const payload = await fetchJsonWithRetry("/categories");
+      const incoming = Array.isArray(payload?.items)
+        ? payload.items.map(mapApiCategory).filter(Boolean)
+        : [];
+      if (incoming.length === 0) return false;
+      categories = incoming;
+      return true;
     }
 
     async function calculateResultFromApi(input) {
-      try {
-        const response = await fetch(`${API_BASE}/calculate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json"
-          },
-          body: JSON.stringify({
-            mode: state.mode,
-            bill: input.bill,
-            vatRate: input.vatRate,
-            taxRate: input.taxRate,
-            categoryCode: state.mode === "category" ? refs.categorySelect.value || null : null
-          })
-        });
-        if (!response.ok) return null;
-        const payload = await response.json();
-        if (!payload?.ok || !payload?.result) return null;
+      const payload = await fetchJsonWithRetry("/calculate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          mode: state.mode,
+          bill: input.bill,
+          vatRate: input.vatRate,
+          taxRate: input.taxRate,
+          categoryCode: state.mode === "category" ? refs.categorySelect.value || null : null
+        })
+      });
+      if (!payload?.ok || !payload?.result) return null;
 
-        const result = payload.result;
-        const categoryItem = getCategoryById(result.categoryCode || refs.categorySelect.value || "");
-        return {
-          mode: result.mode,
-          bill: roundHalfUp2(Number(result.bill) || input.bill),
-          vatRate: roundHalfUp2(Number(result.vatRate) || input.vatRate),
-          taxRate: roundHalfUp2(Number(result.taxRate) || input.taxRate),
-          vatAmount: roundHalfUp2(Number(result.vatAmount) || 0),
-          taxAmount: roundHalfUp2(Number(result.taxAmount) || 0),
-          totalDeduction: roundHalfUp2(Number(result.totalDeduction) || 0),
-          grossAmount: roundHalfUp2(Number(result.grossAmount) || 0),
-          payableAmount: roundHalfUp2(Number(result.payableAmount) || 0),
-          categoryName: input.categoryName || (categoryItem ? (state.lang === "bn" ? categoryItem.nameBn : categoryItem.nameEn) : ""),
-          calculatedAt: result.calculatedAt || new Date().toISOString()
-        };
-      } catch (_) {
-        return null;
-      }
+      const result = payload.result;
+      const categoryItem = getCategoryById(result.categoryCode || refs.categorySelect.value || "");
+      return {
+        mode: result.mode,
+        bill: roundHalfUp2(Number(result.bill) || input.bill),
+        vatRate: roundHalfUp2(Number(result.vatRate) || input.vatRate),
+        taxRate: roundHalfUp2(Number(result.taxRate) || input.taxRate),
+        vatAmount: roundHalfUp2(Number(result.vatAmount) || 0),
+        taxAmount: roundHalfUp2(Number(result.taxAmount) || 0),
+        totalDeduction: roundHalfUp2(Number(result.totalDeduction) || 0),
+        grossAmount: roundHalfUp2(Number(result.grossAmount) || 0),
+        payableAmount: roundHalfUp2(Number(result.payableAmount) || 0),
+        categoryName: input.categoryName || (categoryItem ? (state.lang === "bn" ? categoryItem.nameBn : categoryItem.nameEn) : ""),
+        calculatedAt: result.calculatedAt || new Date().toISOString()
+      };
     }
 
     function validateInputs() {
@@ -1410,6 +1480,7 @@
       }
       renderHistory();
       renderInsightPanel();
+      renderBackendHealth();
     }
 
     function renderModeDescription() {
@@ -1658,6 +1729,7 @@
 
     async function initApp() {
       loadHistory();
+      await checkApiHealth();
       await loadCategoriesFromApi();
       registerServiceWorker();
       initParticleBackground();

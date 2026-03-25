@@ -119,7 +119,10 @@
       <p id="subtitle" class="text-xs text-slate-600">Minimal quick calculator for mobile use</p>
       <div class="mt-2 flex items-center justify-between gap-3 text-[11px] text-slate-600">
         <div class="inline-flex items-center gap-2"><span class="live-dot"></span><span id="liveBadge">Live Auto Calculation</span></div>
-        <div id="analyticsInfo" class="font-semibold"></div>
+        <div class="flex items-center gap-2">
+          <span id="backendHealthBadge" class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold"></span>
+          <div id="analyticsInfo" class="font-semibold"></div>
+        </div>
       </div>
     </header>
 
@@ -228,7 +231,10 @@
         errRateRange: "VAT/Tax must be in 0-100",
         errCategoryRequired: "Select a category in category mode",
         stats: "Calc: {calc} | Err: {err}",
-        apiFallback: "Backend unavailable, local calculation used"
+        apiFallback: "Backend unavailable, local calculation used",
+        backendOnline: "API Online",
+        backendOffline: "API Offline",
+        backendChecking: "API Check"
       },
       bn: {
         title: "বাংলাদেশ ভ্যাট ও ট্যাক্স ক্যালকুলেটর",
@@ -264,7 +270,10 @@
         errRateRange: "ভ্যাট/ট্যাক্স হার ০-১০০ এর মধ্যে হতে হবে",
         errCategoryRequired: "ক্যাটাগরি মোডে ক্যাটাগরি নির্বাচন করুন",
         stats: "ক্যালক: {calc} | ত্রুটি: {err}",
-        apiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার হয়েছে"
+        apiFallback: "ব্যাকএন্ড পাওয়া যায়নি, লোকাল হিসাব ব্যবহার হয়েছে",
+        backendOnline: "API অনলাইন",
+        backendOffline: "API অফলাইন",
+        backendChecking: "API যাচাই"
       }
     };
 
@@ -277,11 +286,14 @@
         calculations: 0,
         errors: 0,
         modeUsage: { gross: 0, vendor: 0, category: 0 }
-      }
+      },
+      apiHealthy: null
     };
 
     const ANALYTICS_KEY = "vat-mobile-analytics-v1";
     const API_BASE = window.VAT_API_BASE || "/api/v1";
+    const API_TIMEOUT_MS = Number(window.VAT_API_TIMEOUT_MS || 3500);
+    const API_RETRY_COUNT = Number(window.VAT_API_RETRY_COUNT || 1);
     const bnDigitMap = { "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4", "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9" };
     const formatters = {};
 
@@ -293,6 +305,7 @@
       modeVendor: document.getElementById("modeVendor"),
       modeCategory: document.getElementById("modeCategory"),
       liveBadge: document.getElementById("liveBadge"),
+      backendHealthBadge: document.getElementById("backendHealthBadge"),
       analyticsInfo: document.getElementById("analyticsInfo"),
       lblBill: document.getElementById("lblBill"),
       lblVat: document.getElementById("lblVat"),
@@ -425,6 +438,80 @@
       });
     }
 
+    function renderBackendHealth() {
+      if (!refs.backendHealthBadge) return;
+
+      refs.backendHealthBadge.classList.remove(
+        "border-emerald-200",
+        "bg-emerald-50",
+        "text-emerald-700",
+        "border-rose-200",
+        "bg-rose-50",
+        "text-rose-700",
+        "border-amber-200",
+        "bg-amber-50",
+        "text-amber-700"
+      );
+
+      if (state.apiHealthy === true) {
+        refs.backendHealthBadge.classList.add("border-emerald-200", "bg-emerald-50", "text-emerald-700");
+        refs.backendHealthBadge.textContent = t("backendOnline");
+        return;
+      }
+
+      if (state.apiHealthy === false) {
+        refs.backendHealthBadge.classList.add("border-rose-200", "bg-rose-50", "text-rose-700");
+        refs.backendHealthBadge.textContent = t("backendOffline");
+        return;
+      }
+
+      refs.backendHealthBadge.classList.add("border-amber-200", "bg-amber-50", "text-amber-700");
+      refs.backendHealthBadge.textContent = t("backendChecking");
+    }
+
+    async function fetchJsonWithRetry(path, options = {}, retries = API_RETRY_COUNT) {
+      const attempts = Math.max(0, Number(retries));
+      for (let attempt = 0; attempt <= attempts; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+        try {
+          const response = await fetch(`${API_BASE}${path}`, {
+            ...options,
+            signal: controller.signal,
+            headers: {
+              Accept: "application/json",
+              ...(options.headers || {})
+            }
+          });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            if (attempt === attempts) return null;
+            continue;
+          }
+
+          const payload = await response.json();
+          state.apiHealthy = true;
+          renderBackendHealth();
+          return payload;
+        } catch (_) {
+          clearTimeout(timeoutId);
+          if (attempt === attempts) {
+            state.apiHealthy = false;
+            renderBackendHealth();
+            return null;
+          }
+        }
+      }
+      return null;
+    }
+
+    async function checkApiHealth() {
+      const payload = await fetchJsonWithRetry("/health", {}, 0);
+      state.apiHealthy = Boolean(payload?.ok);
+      renderBackendHealth();
+    }
+
     function mapApiCategory(item) {
       const id = item?.code || item?.id;
       if (!id) return null;
@@ -438,57 +525,43 @@
     }
 
     async function loadCategoriesFromApi() {
-      try {
-        const response = await fetch(`${API_BASE}/categories`, {
-          headers: { Accept: "application/json" }
-        });
-        if (!response.ok) return false;
-        const payload = await response.json();
-        const incoming = Array.isArray(payload?.items)
-          ? payload.items.map(mapApiCategory).filter(Boolean)
-          : [];
-        if (incoming.length === 0) return false;
-        categories = incoming;
-        return true;
-      } catch (_) {
-        return false;
-      }
+      const payload = await fetchJsonWithRetry("/categories");
+      const incoming = Array.isArray(payload?.items)
+        ? payload.items.map(mapApiCategory).filter(Boolean)
+        : [];
+      if (incoming.length === 0) return false;
+      categories = incoming;
+      return true;
     }
 
     async function calculateViaApi(input) {
-      try {
-        const response = await fetch(`${API_BASE}/calculate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json"
-          },
-          body: JSON.stringify({
-            mode: state.mode,
-            bill: input.bill,
-            vatRate: input.vat,
-            taxRate: input.tax,
-            categoryCode: state.mode === "category" ? refs.categorySelect.value || null : null
-          })
-        });
-        if (!response.ok) return null;
-        const payload = await response.json();
-        if (!payload?.ok || !payload?.result) return null;
-        const result = payload.result;
-        return {
-          mode: result.mode,
-          bill: round2(Number(result.bill) || input.bill),
-          vatRate: round2(Number(result.vatRate) || input.vat),
-          taxRate: round2(Number(result.taxRate) || input.tax),
-          vatAmount: round2(Number(result.vatAmount) || 0),
-          taxAmount: round2(Number(result.taxAmount) || 0),
-          totalDeduction: round2(Number(result.totalDeduction) || 0),
-          payable: round2(Number(result.payableAmount) || 0),
-          gross: round2(Number(result.grossAmount) || 0)
-        };
-      } catch (_) {
-        return null;
-      }
+      const payload = await fetchJsonWithRetry("/calculate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          mode: state.mode,
+          bill: input.bill,
+          vatRate: input.vat,
+          taxRate: input.tax,
+          categoryCode: state.mode === "category" ? refs.categorySelect.value || null : null
+        })
+      });
+      if (!payload?.ok || !payload?.result) return null;
+
+      const result = payload.result;
+      return {
+        mode: result.mode,
+        bill: round2(Number(result.bill) || input.bill),
+        vatRate: round2(Number(result.vatRate) || input.vat),
+        taxRate: round2(Number(result.taxRate) || input.tax),
+        vatAmount: round2(Number(result.vatAmount) || 0),
+        taxAmount: round2(Number(result.taxAmount) || 0),
+        totalDeduction: round2(Number(result.totalDeduction) || 0),
+        payable: round2(Number(result.payableAmount) || 0),
+        gross: round2(Number(result.grossAmount) || 0)
+      };
     }
 
     function applyLanguage() {
@@ -520,6 +593,7 @@
       } else {
         refs.status.textContent = t("ready");
       }
+      renderBackendHealth();
       buildCategories();
       updateAnalyticsInfo();
     }
@@ -730,6 +804,7 @@
 
     async function initApp() {
       loadAnalytics();
+      await checkApiHealth();
       await loadCategoriesFromApi();
       setMode("gross");
       buildCategories();
